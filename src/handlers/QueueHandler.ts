@@ -94,6 +94,41 @@ export class QueueHandler {
         this.queues.set(guild.id, [currentSong, ...remainingSongs]);
     }
 
+    public moveSong(guild: Guild, fromIndex: number, toIndex: number): boolean {
+        const queue = this.queues.get(guild.id);
+        if (!queue || queue.length === 0) {
+            return false;
+        }
+
+        // Check if indices are valid
+        if (fromIndex < 0 || fromIndex >= queue.length || 
+            toIndex < 0 || toIndex >= queue.length ||
+            fromIndex === toIndex) {
+            return false;
+        }
+
+        // Remove the song from its current position and insert it at the new position
+        const [song] = queue.splice(fromIndex, 1);
+        queue.splice(toIndex, 0, song);
+        return true;
+    }
+
+    public removeSong(guild: Guild, index: number): QueuedSong | null {
+        const queue = this.queues.get(guild.id);
+        if (!queue || queue.length === 0) {
+            return null;
+        }
+
+        // Check if index is valid
+        if (index < 0 || index >= queue.length) {
+            return null;
+        }
+
+        // Remove and return the song
+        const [removedSong] = queue.splice(index, 1);
+        return removedSong;
+    }
+
     public getQueue(guild: Guild): QueuedSong[] {
         return this.queues.get(guild.id) || [];
     }

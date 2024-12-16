@@ -35,6 +35,7 @@ async function getPlaylistVideos(playlistUrl: string): Promise<string[]> {
 
 export default {
     name: 'playlist',
+    aliases: ['pl', 'list', 'l'],
     description: 'Add all songs from a YouTube playlist to the queue',
     execute: async (message: Message, args: string[]) => {
         if (!message.guild || !message.member) {

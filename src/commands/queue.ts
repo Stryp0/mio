@@ -4,6 +4,7 @@ import { uiHandler } from '../handlers/UIHandler';
 
 export default {
     name: 'queue',
+    aliases: ['np', 'nowplaying', 'q'],
     description: 'Display the current song and queue',
     execute: async (message: Message) => {
         if (!message.guild) {
