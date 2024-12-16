@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+
+# Build output
+dist/
+build/
+*.js
+*.js.map
+
+# Downloaded songs and cache
+songs/
+cache/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+.windsurfrules
+
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Config files that might contain sensitive data
+src/config/*
+!src/config/example.config.ts
+
+# Personal notes
+todo.md
