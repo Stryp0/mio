@@ -15,6 +15,7 @@ function validateAndCleanYouTubeUrl(url: string): string | null {
 
 export default {
     name: 'play',
+    aliases: ['p'],
     description: 'Add a song to the queue and start playback',
     execute: async (message: Message, args: string[]) => {
         if (!message.guild || !message.member) {

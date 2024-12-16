@@ -7,12 +7,14 @@ dotenv.config();
 
 type Command = {
     name: string;
+    aliases?: string[];
     execute: (message: Message, args: string[]) => void;
 };
 
 class CommandHandler {
     private client: Client;
     private commands: Map<string, Command> = new Map();
+    private aliases: Map<string, string> = new Map();
     private prefix: string;
 
     constructor(client: Client) {
@@ -29,9 +31,16 @@ class CommandHandler {
             const commandPath = path.join(commandsPath, file);
             const command = require(commandPath).default as Command;
             this.commands.set(command.name, command);
+            
+            // Register aliases if they exist
+            if (command.aliases) {
+                for (const alias of command.aliases) {
+                    this.aliases.set(alias, command.name);
+                }
+            }
         }
 
-        console.log(`Loaded ${this.commands.size} commands.`);
+        console.log(`Loaded ${this.commands.size} commands with ${this.aliases.size} aliases.`);
     }
 
     public handleMessage(message: Message): void {
@@ -44,13 +53,14 @@ class CommandHandler {
 
         if (!commandName) return;
 
-        // Find and execute the command
-        const command = this.commands.get(commandName);
+        // Find and execute the command (check both command name and aliases)
+        const mainCommandName = this.aliases.get(commandName) || commandName;
+        const command = this.commands.get(mainCommandName);
         if (command) {
             try {
                 command.execute(message, args);
             } catch (error) {
-                console.error(`Error executing command ${commandName}:`, error);
+                console.error(`Error executing command ${mainCommandName}:`, error);
                 message.reply("There was an error while executing that command!");
             }
         } else {
