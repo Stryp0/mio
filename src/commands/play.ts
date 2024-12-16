@@ -45,8 +45,14 @@ export default {
                 return;
             }
 
-            // Update message with track name after metadata is fetched
-            await loadingMsg.edit(`${result.metadata.Track} added to queue!`);
+            const queue = queueHandler.getQueue(message.guild);
+            if (queue.length <= 1) {
+                await loadingMsg.edit(`${result.metadata.Track} added to queue and will start playing shortly!`);
+            } else {
+                const position = queue.length - 1;
+                // Update message with track name and position after metadata is fetched
+                await loadingMsg.edit(`${result.metadata.Track} added to queue at position #${position}!`);
+            }
 
             // Start playback
             try {
