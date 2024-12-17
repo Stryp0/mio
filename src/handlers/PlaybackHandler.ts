@@ -176,7 +176,7 @@ export class PlaybackHandler {
         queueHandler.clearQueue(guild);
     }
 
-    public skipToNextSong(guild: Guild): void {
+    public skipSong(guild: Guild): void {
         const player = this.getPlayer(guild);
         if (!player) {
             throw new Error('No active player found for this guild');
@@ -185,6 +185,23 @@ export class PlaybackHandler {
         // Stop the current song, which will trigger the 'idle' event
         // and automatically play the next song
         player.stop();
+    }
+
+    public isGuildPlayerPaused(guild: Guild): boolean {
+        const player = this.getPlayer(guild);
+        return player ? player.state.status === AudioPlayerStatus.Paused : null;
+    }
+
+    // Deprecated: Use isGuildPlayerPaused instead
+    public get isPaused(): boolean {
+        console.warn('Warning: isPaused is deprecated. Use isGuildPlayerPaused instead.');
+        // Check if any player is paused
+        for (const player of this.players.values()) {
+            if (player.state.status === AudioPlayerStatus.Paused) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 
