@@ -1,6 +1,7 @@
 import { Client, GatewayIntentBits } from 'discord.js';
 import CommandHandler from './handlers/CommandHandler';
 import { ConfigHandler } from './handlers/ConfigHandler';
+import { uiHandler } from './handlers/UIHandler';
 
 const client = new Client({
     intents: [
@@ -18,6 +19,12 @@ client.once('ready', () => {
     console.log(`Logged in as ${client.user?.tag}!`);
     console.log(`Bot is ready and serving in ${client.guilds.cache.size} servers!`);
     commandHandler.listen(); // Start listening for commands
+});
+
+// Handle button interactions
+client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isButton()) return;
+    await uiHandler.handleButtonInteraction(interaction);
 });
 
 // Error handling
