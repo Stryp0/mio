@@ -34,6 +34,3 @@ Thumbs.db
 # Config files that might contain sensitive data
 src/config/*
 !src/config/example.config.ts
-
-# Personal notes
-todo.md

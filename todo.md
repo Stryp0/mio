@@ -1,0 +1,12 @@
+# TODO
+- Search functionality
+- View local cache maybe?
+- Correct implementation of "delete messages" setting
+- History handler, so we know what's been played
+- Automatically display queue with UIHandler if env setting
+- Handle if metadata has been downloaded, but somehow the file does not exist (or the Song's Filename parameter is null)
+- Actual env example
+- Fix documentation
+- Provide installation instructions (and figure out how to put this into prod lol)
+- Downloaded song library management, like size, number of songs etc
+- Consistency in saying song names in response messages
