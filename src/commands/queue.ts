@@ -22,7 +22,7 @@ export default {
             if (!currentSong) {
                 await message.reply('There is nothing playing!');
             } else {
-                await uiHandler.displayNowPlaying(message.guild, message.channel, currentSong);
+                await uiHandler.displayQueue(message.channel, message.guild);
             }
         } catch (error) {
             if (error instanceof Error) {

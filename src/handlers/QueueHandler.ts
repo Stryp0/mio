@@ -1,5 +1,6 @@
 import { Guild, User } from 'discord.js';
 import { Song, metaHandler } from './MetaHandler';
+import { EventEmitter } from 'events';
 
 export interface QueuedSong {
     song: Song;
@@ -9,15 +10,17 @@ export interface QueuedSong {
     };
 }
 
-export class QueueHandler {
+export class QueueHandler extends EventEmitter {
     private queues: Map<string, QueuedSong[]>;
 
     constructor() {
+        super();
         this.queues = new Map<string, QueuedSong[]>();
     }
 
     public clearQueue(guild: Guild): void {
         this.queues.set(guild.id, []);
+        this.emit('queueUpdate', guild);
     }
 
     public async addLinkToQueue(guild: Guild, link: string, requestedBy: User): Promise<{ metadata: Song | null, downloadPromise: Promise<boolean> }> {
@@ -30,16 +33,16 @@ export class QueueHandler {
             this.queues.set(guild.id, []);
         }
         
-        const queue = this.queues.get(guild.id)!;
-        queue.push({
+        this.queues.get(guild.id)?.push({
             song: result.metadata,
             requestedBy: {
                 id: requestedBy.id,
                 username: requestedBy.username
             }
         });
+        this.emit('queueUpdate', guild);
         
-        return result;
+        return { metadata: result.metadata, downloadPromise: result.downloadPromise };
     }
 
     public getCurrentQueueItem(guild: Guild): QueuedSong | null {
@@ -55,12 +58,15 @@ export class QueueHandler {
         if (!queue || queue.length === 0) {
             return null;
         }
-        
+
         // Remove the current song
         queue.shift();
         
+        this.emit('queueUpdate', guild);
+        
         // Return the new first item (or null if queue is now empty)
         return queue.length > 0 ? queue[0] : null;
+
     }
 
     public clearQueueExceptCurrent(guild: Guild): void {
@@ -72,6 +78,7 @@ export class QueueHandler {
         // Keep only the first song (current playing)
         const currentSong = queue[0];
         this.queues.set(guild.id, [currentSong]);
+        this.emit('queueUpdate', guild);
     }
 
     public shuffleQueue(guild: Guild): void {
@@ -92,6 +99,7 @@ export class QueueHandler {
 
         // Reconstruct queue with current song at the start
         this.queues.set(guild.id, [currentSong, ...remainingSongs]);
+        this.emit('queueUpdate', guild);
     }
 
     public moveSong(guild: Guild, fromIndex: number, toIndex: number): boolean {
@@ -110,6 +118,7 @@ export class QueueHandler {
         // Remove the song from its current position and insert it at the new position
         const [song] = queue.splice(fromIndex, 1);
         queue.splice(toIndex, 0, song);
+        this.emit('queueUpdate', guild);
         return true;
     }
 
@@ -126,6 +135,7 @@ export class QueueHandler {
 
         // Remove and return the song
         const [removedSong] = queue.splice(index, 1);
+        this.emit('queueUpdate', guild);
         return removedSong;
     }
 
