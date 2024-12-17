@@ -11,7 +11,7 @@ export default {
         }
 
         try {
-            playbackHandler.skipToNextSong(message.guild);
+            playbackHandler.skipSong(message.guild);
             await message.reply('Skipping to next song...');
         } catch (error) {
             if (error instanceof Error) {
