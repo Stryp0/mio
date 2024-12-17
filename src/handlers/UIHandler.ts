@@ -8,6 +8,11 @@ export class UIHandler {
 
     constructor() {
         this.nowPlayingMessages = new Map();
+        
+        // Listen for queue updates
+        queueHandler.on('queueUpdate', async (guild: Guild) => {
+            await this.updateExistingMessage(guild);
+        });
     }
 
     private formatDuration(seconds: number): string {
@@ -40,11 +45,11 @@ export class UIHandler {
                 });
 
             // Add up to X next songs as a simple list
-            const nextSongs = queueItems.slice(0, this.SONGS_PER_PAGE);
+            const nextSongs = queueItems.slice(1, this.SONGS_PER_PAGE);
             if (nextSongs.length > 0) {
                 const nextSongsList = nextSongs
                     .map((item, index) => 
-                        `${index + 1}. **${item.song.Artist} - ${item.song.Title}** ` +
+                        `${index}. **${item.song.Artist} - ${item.song.Title}** ` +
                         `(${this.formatDuration(item.song.Duration)}) *- by ${item.requestedBy.username}*`
                     )
                     .join('\n');
@@ -102,6 +107,32 @@ export class UIHandler {
         return row;
     }
 
+    private async updateExistingMessage(guild: Guild): Promise<void> {
+        const messageInfo = this.nowPlayingMessages.get(guild.id);
+        if (!messageInfo) return;
+
+        const channel = guild.channels.cache.get(messageInfo.channelId) as TextChannel;
+        if (!channel) return;
+
+        try {
+            const message = await channel.messages.fetch(messageInfo.messageId);
+            const currentItem = queueHandler.getCurrentQueueItem(guild);
+            const queueItems = queueHandler.getQueue(guild);
+
+            if (!currentItem && queueItems.length === 0) {
+                await message.delete();
+                this.nowPlayingMessages.delete(guild.id);
+            } else {
+                const embed = this.createNowPlayingEmbed(currentItem, queueItems);
+                const row = this.createControlButtons(guild);
+                await message.edit({ embeds: [embed], components: [row] });
+            }
+        } catch (error) {
+            console.error('Failed to update message:', error);
+            this.nowPlayingMessages.delete(guild.id);
+        }
+    }
+
     public async handleButtonInteraction(interaction: ButtonInteraction): Promise<void> {
         if (!interaction.guild) return;
 
@@ -124,15 +155,13 @@ export class UIHandler {
                         playbackHandler.pausePlayback(interaction.guild);
                         await interaction.reply({ content: 'Paused playback!', ephemeral: true });
                     }
+                    await this.updateExistingMessage(interaction.guild);
                     break;
                 case 'stop':
                     playbackHandler.stopPlayback(interaction.guild);
                     await interaction.reply({ content: 'Stopped playback and cleared the queue!', ephemeral: true });
                     break;
             }
-
-            // Update the now playing message to reflect the new state
-            await this.updateNowPlaying(interaction.guild);
         } catch (error) {
             console.error('Error handling button interaction:', error);
             await interaction.reply({ 
@@ -142,28 +171,33 @@ export class UIHandler {
         }
     }
 
-    public async displayNowPlaying(guild: Guild, channel: TextChannel, currentItem: QueuedSong): Promise<void> {
-        const queue = queueHandler.getQueue(guild);
-        const queueItems = queue.slice(1); // Exclude current song
-        const embed = this.createNowPlayingEmbed(currentItem, queueItems);
-        const row = this.createControlButtons(guild);
-
-        // Check if there's an existing now playing message
+    public async displayQueue(channel: TextChannel, guild: Guild): Promise<void> {
+        // Delete existing message if it exists
         const existingMessage = this.nowPlayingMessages.get(guild.id);
         if (existingMessage) {
             try {
-                const messageChannel = await guild.channels.fetch(existingMessage.channelId);
-                if (messageChannel?.isTextBased()) {
-                    const message = await messageChannel.messages.fetch(existingMessage.messageId);
-                    await message.edit({ embeds: [embed], components: [row] });
-                    return;
+                const oldChannel = guild.channels.cache.get(existingMessage.channelId) as TextChannel;
+                if (oldChannel) {
+                    const oldMessage = await oldChannel.messages.fetch(existingMessage.messageId);
+                    await oldMessage.delete();
                 }
             } catch (error) {
-                console.error('Error updating now playing message:', error);
+                console.error('Failed to delete old queue message:', error);
             }
         }
 
-        // If no existing message or failed to update, send a new one
+        const currentItem = queueHandler.getCurrentQueueItem(guild);
+        const queueItems = queueHandler.getQueue(guild);
+
+        // Don't create a new message if there's nothing to show
+        if (!currentItem && queueItems.length === 0) {
+            this.nowPlayingMessages.delete(guild.id);
+            return;
+        }
+
+        const embed = this.createNowPlayingEmbed(currentItem, queueItems);
+        const row = this.createControlButtons(guild);
+
         const message = await channel.send({ embeds: [embed], components: [row] });
         this.nowPlayingMessages.set(guild.id, { 
             channelId: channel.id, 
@@ -172,19 +206,7 @@ export class UIHandler {
     }
 
     public async updateNowPlaying(guild: Guild): Promise<void> {
-        const currentItem = queueHandler.getCurrentQueueItem(guild);
-        const existingMessage = this.nowPlayingMessages.get(guild.id);
-
-        if (currentItem && existingMessage) {
-            try {
-                const channel = await guild.channels.fetch(existingMessage.channelId);
-                if (channel?.isTextBased()) {
-                    await this.displayNowPlaying(guild, channel as TextChannel, currentItem);
-                }
-            } catch (error) {
-                console.error('Error updating now playing message:', error);
-            }
-        }
+        await this.updateExistingMessage(guild);
     }
 }
 
