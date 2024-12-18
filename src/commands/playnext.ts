@@ -16,7 +16,8 @@ function validateAndCleanYouTubeUrl(url: string): string | null {
 export default {
     name: 'playnext',
     aliases: ['next', 'pn', 'n'],
-    description: 'Add a song to play next in the queue',
+    arguments: '<YouTube link>',
+    description: 'Adds a song to play next in the queue',
     execute: async (message: Message, args: string[]) => {
         if (!message.guild || !message.member) {
             await message.reply('This command can only be used in a server!');
@@ -47,12 +48,18 @@ export default {
 
             // Get the current queue length and move the newly added song to position 1 (right after currently playing)
             const queue = queueHandler.getQueue(message.guild);
-            const success = queueHandler.moveSong(message.guild, queue.length - 1, 1);
 
-            if (success) {
-                await loadingMsg.edit(`${result.metadata.Track} will play next!`);
+            if (queue.length > 2) {
+                const success = queueHandler.moveSong(message.guild, queue.length - 1, 1);
+
+                if (success) {
+                    await loadingMsg.edit(`${result.metadata.Track} will play next!`);
+                } else {
+                    // This should literally never happen
+                    await loadingMsg.edit(`${result.metadata.Track} added to queue, but couldn't move it to play next.`);
+                }
             } else {
-                await loadingMsg.edit(`${result.metadata.Track} added to queue, but couldn't move it to play next.`);
+                await loadingMsg.edit(`${result.metadata.Track} will play next!`);
             }
 
             // Start playback if nothing is playing
