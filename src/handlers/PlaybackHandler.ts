@@ -191,18 +191,6 @@ export class PlaybackHandler {
         const player = this.getPlayer(guild);
         return player ? player.state.status === AudioPlayerStatus.Paused : null;
     }
-
-    // Deprecated: Use isGuildPlayerPaused instead
-    public get isPaused(): boolean {
-        console.warn('Warning: isPaused is deprecated. Use isGuildPlayerPaused instead.');
-        // Check if any player is paused
-        for (const player of this.players.values()) {
-            if (player.state.status === AudioPlayerStatus.Paused) {
-                return true;
-            }
-        }
-        return false;
-    }
 }
 
 // Create a singleton instance
