@@ -15,6 +15,10 @@ export class DownloadHandler {
         return match ? match[1] : null;
     }
 
+    private cleanMarkdownCharacters(text: string): string {
+        return text.replace(/[\*\_\#\[\]\(\)\~\`\>\|\\\{\}]/g, '');
+    }
+
     public async downloadSongMetadata(link: string): Promise<Song | null> {
         const videoId = this.extractVideoId(link);
         if (!videoId) {
@@ -25,15 +29,17 @@ export class DownloadHandler {
             const cmd = `yt-dlp -j ${link}`;
             const { stdout } = await execPromise(cmd);
             const videoInfo = JSON.parse(stdout);
-            const videoArtist = (videoInfo.channel || videoInfo.uploader)?.replace(' - Topic', '') || 'Unknown Artist';
+            const rawVideoArtist = (videoInfo.channel || videoInfo.uploader)?.replace(' - Topic', '') || 'Unknown Artist';
+            const videoArtist = this.cleanMarkdownCharacters(rawVideoArtist);
+            const videoTitle = this.cleanMarkdownCharacters(videoInfo.title);
 
             const song: Song = {
                 Artist: videoArtist,
-                Title: videoInfo.title,
+                Title: videoTitle,
                 Thumbnail: videoInfo.thumbnail,
                 Filename: null, // Start with null, will be set after download
                 Link: link,
-                Track: videoArtist + ' - ' + videoInfo.title,
+                Track: videoArtist + ' - ' + videoTitle,
                 ID: videoId,
                 Duration: videoInfo.duration
             };
