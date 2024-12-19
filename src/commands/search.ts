@@ -70,7 +70,8 @@ export default {
                 .setColor('#F23F43')
                 .setTitle('Search Results')
                 .setDescription(`Results for: ${query}`)
-                .setURL('https://music.youtube.com');
+                .setURL(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`)
+                .setThumbnail('https://pic.surf/cwv');
 
             const allResults = [...ytMusicResults, ...youtubeResults];
             allResults.forEach((result, index) => {
