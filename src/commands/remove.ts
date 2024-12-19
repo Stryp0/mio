@@ -5,7 +5,8 @@ import { configHandler } from '../handlers/ConfigHandler';
 export default {
     name: 'remove',
     aliases: ['rm', 'delete', 'del', 'delete'],
-    description: 'Remove a song from the queue',
+    arguments: '<position>',
+    description: 'Removes a song from the queue',
     execute: async (message: Message, args: string[]) => {
         if (!message.guild) {
             await message.reply('This command can only be used in a server!');

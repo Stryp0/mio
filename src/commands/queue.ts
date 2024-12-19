@@ -5,7 +5,8 @@ import { uiHandler } from '../handlers/UIHandler';
 export default {
     name: 'queue',
     aliases: ['np', 'nowplaying', 'q'],
-    description: 'Display the current song and queue',
+    description: 'Displays the currently playing song and queue',
+    altDescription: 'This message will auto-update, and has useful buttons to control playback',
     execute: async (message: Message) => {
         if (!message.guild) {
             await message.reply('This command can only be used in a server!');

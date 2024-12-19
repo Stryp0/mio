@@ -5,7 +5,9 @@ import { configHandler } from '../handlers/ConfigHandler';
 export default {
     name: 'move',
     aliases: ['mv'],
-    description: 'Move a song to a different position in the queue',
+    arguments: '<current position> <target position>',
+    description: 'Moves a song to a different position in the queue',
+    altDescription: 'All other songs will descend in position',
     execute: async (message: Message, args: string[]) => {
         if (!message.guild) {
             await message.reply('This command can only be used in a server!');

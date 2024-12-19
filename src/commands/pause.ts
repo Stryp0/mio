@@ -3,7 +3,7 @@ import { playbackHandler } from '../handlers/PlaybackHandler';
 
 export default {
     name: 'pause',
-    description: 'Pause the current playback',
+    description: 'Pauses the playback',
     execute: async (message: Message) => {
         if (!message.guild) {
             await message.reply('This command can only be used in a server!');
