@@ -1,10 +1,11 @@
 # TODO
-- Make search respond instantly so the user knows what's happening
+- Needs checks for all playback commands to force users to be in a voice channel
+- Automatically display queue with UIHandler if env setting (should probably be in sync with next todo item)
 - Consistent ephemeral messages (maybe config option?)
+- Make search respond instantly so the user knows what's happening
 - View local cache maybe?
 - Correct implementation of "delete messages" setting
 - History handler, so we know what's been played
-- Automatically display queue with UIHandler if env setting
 - Handle if metadata has been downloaded, but somehow the file does not exist (or the Song's Filename parameter is null)
 - Actual env example
 - Fix documentation
