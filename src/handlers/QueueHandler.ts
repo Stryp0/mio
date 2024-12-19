@@ -1,6 +1,7 @@
-import { Guild, User } from 'discord.js';
+import { Guild, User, GuildMember } from 'discord.js';
 import { Song, metaHandler } from './MetaHandler';
 import { EventEmitter } from 'events';
+import { playbackHandler } from './PlaybackHandler';
 
 export interface QueuedSong {
     song: Song;
@@ -33,6 +34,7 @@ export class QueueHandler extends EventEmitter {
             this.queues.set(guild.id, []);
         }
         
+        const queue = this.queues.get(guild.id);
         this.queues.get(guild.id)?.push({
             song: result.metadata,
             requestedBy: {
@@ -41,6 +43,16 @@ export class QueueHandler extends EventEmitter {
             }
         });
         this.emit('queueUpdate', guild);
+        
+        // Start playback if this is the only song in queue
+        if (queue && queue.length <= 1) {
+            try {
+                const member = await guild.members.fetch(requestedBy.id);
+                await playbackHandler.startPlayback(guild, member);
+            } catch (error) {
+                console.error('Error starting playback:', error);
+            }
+        }
         
         return { metadata: result.metadata, downloadPromise: result.downloadPromise };
     }
