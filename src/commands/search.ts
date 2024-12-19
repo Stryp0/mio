@@ -1,7 +1,8 @@
-import { Message, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ButtonInteraction } from 'discord.js';
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ButtonInteraction, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, StringSelectMenuInteraction, GuildMember } from 'discord.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { queueHandler } from '../handlers/QueueHandler';
+import { configHandler } from '../handlers/ConfigHandler';
 
 const execPromise = promisify(exec);
 
@@ -74,13 +75,14 @@ export default {
                 .setThumbnail('https://pic.surf/cwv');
 
             const allResults = [...ytMusicResults, ...youtubeResults];
+            const emojis = ['🟦', '⬛', '🟩', '🟥'];
             allResults.forEach((result, index) => {
                 mainEmbed.addFields({
-                    name: `${index + 1}. ${sanitizeTitle(result.title, result.uploader)}`,
+                    name: `${emojis[index] || '▫️'} ${index + 1}. ${sanitizeTitle(result.title, result.uploader)}`,
                     value: `By: ${result.uploader} (${formatDuration(result.duration)})`,
                     inline: true,
                 });
-                
+
                 if (index === 1) {
                     mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
                 }
@@ -90,46 +92,87 @@ export default {
                 new EmbedBuilder().setURL('https://music.youtube.com').setImage(result.thumbnail)
             );
 
-            // Create buttons for each result
-            const row = new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(
-                    ...allResults.map((result, index) => 
-                        new ButtonBuilder()
-                            .setCustomId(`play_${index}_${message.author.id}`)
-                            .setLabel(`Play ${index + 1}`)
-                            .setStyle(index + 1)
-                    )
-                );
+            // Create components based on config
+            const components: ActionRowBuilder<any>[] = [];
+
+            // Add buttons
+            if (!configHandler.SEARCH_USE_SELECTMENU) {
+                const buttonRow = new ActionRowBuilder<ButtonBuilder>()
+                    .addComponents(
+                        ...allResults.map((result, index) =>
+                            new ButtonBuilder()
+                                .setCustomId(`play_${index}_${message.author.id}`)
+                                .setLabel(`Play ${index + 1}`)
+                                .setStyle(index + 1)
+                        )
+                    );
+                components.push(buttonRow);
+            }
+            // Add select menu if enabled in config
+            else {
+                const select = new StringSelectMenuBuilder()
+                    .setCustomId(`select_${message.author.id}`)
+                    .setPlaceholder('Select a song to play')
+                    .addOptions(
+                        allResults.map((result, index) =>
+                            new StringSelectMenuOptionBuilder()
+                                .setLabel(`${emojis[index] || '▫️'}${index + 1}. ${sanitizeTitle(result.title, result.uploader)}`)
+                                .setDescription(`By: ${result.uploader} (${formatDuration(result.duration)})`)
+                                .setValue(`${index}`)
+                        )
+                    );
+
+                const selectRow = new ActionRowBuilder().addComponents(select);
+                components.push(selectRow);
+            }
 
             const response = await loadingMsg.edit({
                 content: `Results for: **${query}**`,
                 embeds: [mainEmbed, ...imageEmbeds],
-                components: [row]
+                components: components
             });
 
-            // Create button collector
-            const collector = response.createMessageComponentCollector({ 
+            // Create collector for both buttons and select menu
+            const collector = response.createMessageComponentCollector({
                 time: 120000 // 2 minute timeout
             });
 
-            collector.on('collect', async (interaction: ButtonInteraction) => {
-                if (!interaction.isButton()) return;
-                if (!interaction.customId.startsWith('play_')) return;
+            collector.on('collect', async (interaction: ButtonInteraction | StringSelectMenuInteraction) => {
                 if (!interaction.guild) return;
+                if (interaction.user.id !== message.author.id) {
+                    await interaction.reply({
+                        content: 'Only the person who searched can use these controls!',
+                        ephemeral: true
+                    });
+                    return;
+                } else {
+                    await interaction.reply({
+                        content: 'Adding song to queue...',
+                        ephemeral: true
+                    });
+                }
 
-                const [, index, userId] = interaction.customId.split('_');
-                if (userId !== interaction.user.id) {
-                    await interaction.reply({ 
-                        content: 'Only the person who searched can use these buttons!', 
-                        ephemeral: true 
+                const member = interaction.member as GuildMember;
+                if (!member.voice.channel) {
+                    await interaction.editReply({
+                        content: 'You need to be in a voice channel to use this command!'
                     });
                     return;
                 }
 
-                const selectedResult = allResults[parseInt(index)];
-                if (!selectedResult) return;
+                let selectedIndex: number;
+                if (interaction.isButton()) {
+                    if (!interaction.customId.startsWith('play_')) return;
+                    const [, index] = interaction.customId.split('_');
+                    selectedIndex = parseInt(index);
+                } else if (interaction.isStringSelectMenu()) {
+                    selectedIndex = parseInt(interaction.values[0]);
+                } else {
+                    return;
+                }
 
-                await interaction.deferUpdate();
+                const selectedResult = allResults[selectedIndex];
+                if (!selectedResult) return;
                 const result = await queueHandler.addLinkToQueue(
                     interaction.guild,
                     selectedResult.url,
@@ -137,14 +180,12 @@ export default {
                 );
 
                 if (result.metadata) {
-                    await interaction.followUp({
-                        content: `Added **${selectedResult.title}** to the queue!`,
-                        ephemeral: true
+                    await interaction.editReply({
+                        content: `Added **${selectedResult.title}** to the queue!`
                     });
                 } else {
-                    await interaction.followUp({
-                        content: 'Failed to add song to queue.',
-                        ephemeral: true
+                    await interaction.editReply({
+                        content: 'Failed to add song to queue.'
                     });
                 }
             });
