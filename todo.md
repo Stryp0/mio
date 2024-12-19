@@ -1,4 +1,6 @@
 # TODO
+- Make search respond instantly so the user knows what's happening
+- Consistent ephemeral messages (maybe config option?)
 - View local cache maybe?
 - Correct implementation of "delete messages" setting
 - History handler, so we know what's been played
