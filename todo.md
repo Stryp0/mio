@@ -1,5 +1,4 @@
 # TODO
-- Search functionality
 - View local cache maybe?
 - Correct implementation of "delete messages" setting
 - History handler, so we know what's been played
