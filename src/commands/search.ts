@@ -1,6 +1,7 @@
-import { Message, EmbedBuilder } from 'discord.js';
+import { Message, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ButtonInteraction } from 'discord.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { queueHandler } from '../handlers/QueueHandler';
 
 const execPromise = promisify(exec);
 
@@ -71,26 +72,86 @@ export default {
                 .setDescription(`Results for: ${query}`)
                 .setURL('https://music.youtube.com');
 
-            [...ytMusicResults, ...youtubeResults].forEach((result, index) => {
+            const allResults = [...ytMusicResults, ...youtubeResults];
+            allResults.forEach((result, index) => {
                 mainEmbed.addFields({
                     name: `${index + 1}. ${sanitizeTitle(result.title, result.uploader)}`,
                     value: `By: ${result.uploader} (${formatDuration(result.duration)})`,
                     inline: true,
                 });
                 
-                // Add empty field after the second result
                 if (index === 1) {
                     mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
                 }
             });
 
-            const imageEmbeds = [...ytMusicResults, ...youtubeResults].map(result =>
+            const imageEmbeds = allResults.map(result =>
                 new EmbedBuilder().setURL('https://music.youtube.com').setImage(result.thumbnail)
             );
 
-            await loadingMsg.edit({
+            // Create buttons for each result
+            const row = new ActionRowBuilder<ButtonBuilder>()
+                .addComponents(
+                    ...allResults.map((result, index) => 
+                        new ButtonBuilder()
+                            .setCustomId(`play_${index}_${message.author.id}`)
+                            .setLabel(`Play ${index + 1}`)
+                            .setStyle(index + 1)
+                    )
+                );
+
+            const response = await loadingMsg.edit({
                 content: `Results for: **${query}**`,
                 embeds: [mainEmbed, ...imageEmbeds],
+                components: [row]
+            });
+
+            // Create button collector
+            const collector = response.createMessageComponentCollector({ 
+                time: 120000 // 2 minute timeout
+            });
+
+            collector.on('collect', async (interaction: ButtonInteraction) => {
+                if (!interaction.isButton()) return;
+                if (!interaction.customId.startsWith('play_')) return;
+                if (!interaction.guild) return;
+
+                const [, index, userId] = interaction.customId.split('_');
+                if (userId !== interaction.user.id) {
+                    await interaction.reply({ 
+                        content: 'Only the person who searched can use these buttons!', 
+                        ephemeral: true 
+                    });
+                    return;
+                }
+
+                const selectedResult = allResults[parseInt(index)];
+                if (!selectedResult) return;
+
+                await interaction.deferUpdate();
+                const result = await queueHandler.addLinkToQueue(
+                    interaction.guild,
+                    selectedResult.url,
+                    interaction.user
+                );
+
+                if (result.metadata) {
+                    await interaction.followUp({
+                        content: `Added **${selectedResult.title}** to the queue!`,
+                        ephemeral: true
+                    });
+                } else {
+                    await interaction.followUp({
+                        content: 'Failed to add song to queue.',
+                        ephemeral: true
+                    });
+                }
+            });
+
+            collector.on('end', () => {
+                if (response.editable) {
+                    response.edit({ components: [] }).catch(console.error);
+                }
             });
         } catch (error) {
             console.error('Search error:', error);
