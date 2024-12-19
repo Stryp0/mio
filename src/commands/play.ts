@@ -16,7 +16,9 @@ function validateAndCleanYouTubeUrl(url: string): string | null {
 export default {
     name: 'play',
     aliases: ['p'],
-    description: 'Add a song to the queue and start playback',
+    arguments: '<YouTube link>',
+    description: 'Plays a song from a YouTube link',
+    altDescription: 'If playback is already ongoing, adds it to the end of the queue',
     execute: async (message: Message, args: string[]) => {
         if (!message.guild || !message.member) {
             await message.reply('This command can only be used in a server!');
