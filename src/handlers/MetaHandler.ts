@@ -1,5 +1,4 @@
 import fs from 'fs';
-import path from 'path';
 import { downloadHandler } from './DownloadHandler';
 import { configHandler } from './ConfigHandler';
 
