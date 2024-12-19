@@ -1,4 +1,4 @@
-import { TextChannel, EmbedBuilder, Guild, ActionRowBuilder, ButtonBuilder, ButtonStyle, Message, ButtonInteraction } from 'discord.js';
+import { TextChannel, EmbedBuilder, Guild, ActionRowBuilder, ButtonBuilder, ButtonStyle, ButtonInteraction } from 'discord.js';
 import { queueHandler, QueuedSong } from './QueueHandler';
 import { playbackHandler } from './PlaybackHandler';
 
