@@ -52,17 +52,7 @@ export default {
                 await loadingMsg.edit(`**${result.metadata.Track}** added to queue and will start playing shortly!`);
             } else {
                 const position = queue.length - 1;
-                // Update message with track name and position after metadata is fetched
                 await loadingMsg.edit(`**${result.metadata.Track}** added to queue at position #${position}!`);
-            }
-
-            // Start playback
-            try {
-                await playbackHandler.startPlayback(message.guild, message.member);
-            } catch (error) {
-                if (error instanceof Error) {
-                    await message.reply(error.message);
-                }
             }
 
             // Wait for download to complete in the background

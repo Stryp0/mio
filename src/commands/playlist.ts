@@ -77,18 +77,6 @@ export default {
                     if (result.metadata) {
                         addedCount++;
 
-                        // Start playback with the first successfully added song
-                        if (firstSong) {
-                            firstSong = false;
-                            try {
-                                await playbackHandler.startPlayback(message.guild, message.member);
-                            } catch (error) {
-                                if (error instanceof Error) {
-                                    console.error('Error starting playback:', error);
-                                }
-                            }
-                        }
-
                         // Let the download happen in background
                         result.downloadPromise.catch(error => {
                             console.error('Error downloading song:', error);

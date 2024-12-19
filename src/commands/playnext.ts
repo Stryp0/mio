@@ -62,15 +62,6 @@ export default {
                 await loadingMsg.edit(`**${result.metadata.Track}** will play next!`);
             }
 
-            // Start playback if nothing is playing
-            try {
-                await playbackHandler.startPlayback(message.guild, message.member);
-            } catch (error) {
-                if (error instanceof Error) {
-                    await message.reply(error.message);
-                }
-            }
-
             // Wait for download to complete in the background
             result.downloadPromise.catch(error => {
                 console.error('Error downloading song:', error);
