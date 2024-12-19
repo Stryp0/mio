@@ -15,7 +15,7 @@ export default {
         }
 
         if (args.length !== 2) {
-            await message.reply('Please provide both the current position and the target position (e.g., !move 3 1).');
+            await message.reply(`Please provide both the current position and the target position (e.g., ${configHandler.COMMAND_PREFIX}move 3 1).`);
             return;
         }
 
