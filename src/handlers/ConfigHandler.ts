@@ -56,6 +56,10 @@ export class ConfigHandler {
     public get DELETE_BOT_COMMANDS(): boolean {
         return this.getEnvOrDefault('DELETE_BOT_COMMANDS', 'false') === 'true';
     }
+
+    public get SEARCH_USE_SELECTMENU(): boolean {
+        return this.getEnvOrDefault('SEARCH_USE_SELECTMENU', 'false') === 'true';
+    }
 }
 
 export const configHandler = ConfigHandler.getInstance();
