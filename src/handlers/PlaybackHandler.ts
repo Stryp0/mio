@@ -8,7 +8,6 @@ import {
     VoiceConnection
 } from '@discordjs/voice';
 import { queueHandler, QueuedSong } from './QueueHandler';
-import { Song } from './MetaHandler';
 import { configHandler } from './ConfigHandler';
 import path from 'path';
 
