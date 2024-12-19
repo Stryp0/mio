@@ -53,13 +53,13 @@ export default {
                 const success = queueHandler.moveSong(message.guild, queue.length - 1, 1);
 
                 if (success) {
-                    await loadingMsg.edit(`${result.metadata.Track} will play next!`);
+                    await loadingMsg.edit(`**${result.metadata.Track}** will play next!`);
                 } else {
                     // This should literally never happen
-                    await loadingMsg.edit(`${result.metadata.Track} added to queue, but couldn't move it to play next.`);
+                    await loadingMsg.edit(`**${result.metadata.Track}** added to queue, but couldn't move it to play next.`);
                 }
             } else {
-                await loadingMsg.edit(`${result.metadata.Track} will play next!`);
+                await loadingMsg.edit(`**${result.metadata.Track}** will play next!`);
             }
 
             // Start playback if nothing is playing

@@ -9,4 +9,3 @@
 - Fix documentation
 - Provide installation instructions (and figure out how to put this into prod lol)
 - Downloaded song library management, like size, number of songs etc
-- Consistency in saying song names in response messages
