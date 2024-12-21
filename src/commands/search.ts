@@ -69,22 +69,30 @@ export default {
                 .setColor('#F23F43')
                 .setTitle('Search Results')
                 .setDescription(`Results for: ${query}`)
-                .setURL(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`)
-                .setThumbnail('https://pic.surf/cwv');
+                .setURL(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`);
 
             const allResults = [...ytMusicResults, ...youtubeResults];
             const emojis = ['🟦', '⬛', '🟩', '🟥'];
             allResults.forEach((result, index) => {
                 mainEmbed.addFields({
                     name: `${emojis[index] || '▫️'} ${index + 1}. ${sanitizeTitle(result.title, result.uploader)}`,
-                    value: `By: ${result.uploader} (${formatDuration(result.duration)})`,
+                    value: `[By: ${result.uploader} (${formatDuration(result.duration)})](${result.url})`,
                     inline: true,
                 });
-
+            
                 if (index === 1) {
                     mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
                 }
             });
+
+            if (allResults.length > 1) {
+                const thumbnailUrls = {
+                    2: 'https://pic.surf/yne',
+                    3: 'https://pic.surf/rjk',
+                    4: 'https://pic.surf/cwv'
+                };
+                mainEmbed.setThumbnail(thumbnailUrls[allResults.length]);
+            }
 
             const imageEmbeds = allResults.map(result =>
                 new EmbedBuilder().setURL('https://music.youtube.com').setImage(result.thumbnail)
