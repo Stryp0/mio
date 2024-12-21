@@ -15,7 +15,6 @@ async function searchYouTube(query, limit, isMusic = false) {
             encoding: 'utf8',
             env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
         });
-        console.log('Search Query:', query);
         return stdout.split('\n').filter(Boolean).reduce((results, line, index) => {
             if (index % 5 === 0 && results.length < limit) {
                 const title = line;
@@ -27,7 +26,6 @@ async function searchYouTube(query, limit, isMusic = false) {
                     uploader: uploader,
                     thumbnail: stdout.split('\n')[index + 4] || '',
                 });
-                console.log('Video Title:', title);
             }
             return results;
         }, []);
