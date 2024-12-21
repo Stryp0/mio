@@ -52,7 +52,7 @@ export default {
                 await loadingMsg.edit(`**${result.metadata.Track}** added to queue and will start playing shortly!`);
             } else {
                 const position = queue.length - 1;
-                await loadingMsg.edit(`**${result.metadata.Track}** added to queue at position #${position}!`);
+                await loadingMsg.edit(`**${result.metadata.Track}** added to queue at position ${position}!`);
             }
 
             // Wait for download to complete in the background
