@@ -39,9 +39,7 @@ export class PlaybackHandler {
     private async playNextSong(guild: Guild): Promise<void> {
         const nextSong = queueHandler.getNextQueueItem(guild);
         if (!nextSong) {
-            // No more songs in queue, cleanup
-            this.connections.get(guild.id)?.disconnect();
-            this.connections.delete(guild.id);
+            // No more songs in queue, only cleanup the player but keep the connection
             this.players.delete(guild.id);
             return;
         }
@@ -189,6 +187,15 @@ export class PlaybackHandler {
     public isGuildPlayerPaused(guild: Guild): boolean {
         const player = this.getPlayer(guild);
         return player ? player.state.status === AudioPlayerStatus.Paused : null;
+    }
+
+    public getPlaybackProgress(guild: Guild): number | null {
+        const player = this.getPlayer(guild);
+        if (player && player.state.status === AudioPlayerStatus.Playing) {
+            const duration = player.state.playbackDuration;
+            return duration / 1000; 
+        }
+        return null;
     }
 }
 

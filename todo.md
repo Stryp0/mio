@@ -1,4 +1,5 @@
 # TODO
+- do not leave channel when playback ended, maybe configurable timeout after it has been left alone
 - Needs checks for all playback commands to force users to be in a voice channel
 - Automatically display queue with UIHandler if env setting (should probably be in sync with next todo item)
 - Consistent ephemeral messages (maybe config option?)
