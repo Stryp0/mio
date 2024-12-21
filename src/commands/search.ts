@@ -1,4 +1,4 @@
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ButtonInteraction, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, StringSelectMenuInteraction, GuildMember } from 'discord.js';
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonInteraction, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, StringSelectMenuInteraction, GuildMember } from 'discord.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { queueHandler } from '../handlers/QueueHandler';
@@ -7,15 +7,13 @@ import { configHandler } from '../handlers/ConfigHandler';
 const execPromise = promisify(exec);
 
 async function searchYouTube(query, limit, isMusic = false) {
-    const searchType = isMusic ? 'ytmsearch' : 'ytsearch';
     const baseCmd = isMusic
         ? `yt-dlp --print title --print id --print duration --print uploader --print thumbnail --playlist-end ${limit} --default-search "https://music.youtube.com/search?q=" "${query}"`
-        : `yt-dlp --print title --print id --print duration --print uploader --print thumbnail "${searchType}${limit}:${query}"`;
-
+        : `yt-dlp --print title --print id --print duration --print uploader --print thumbnail "ytsearch${limit}:${query}"`;
     try {
         const { stdout } = await execPromise(baseCmd);
         return stdout.split('\n').filter(Boolean).reduce((results, line, index) => {
-            if (index % 5 === 0) {
+            if (index % 5 === 0 && results.length < limit) {
                 results.push({
                     title: line,
                     url: `https://www.youtube.com/watch?v=${stdout.split('\n')[index + 1]}`,
