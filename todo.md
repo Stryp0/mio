@@ -1,14 +1,15 @@
 # TODO
-- do not leave channel when playback ended, maybe configurable timeout after it has been left alone
-- Needs checks for all playback commands to force users to be in a voice channel
+- Configurable timeout after the bot has been left alone (and pause/stop if playback is ongoing, if not, disconnect from channel)
+- Per-server onboarding and configuration options
+- Migrate databases to MongoDB
+- Needs checks for all (playback only?) commands to force users to be in a voice channel
 - Automatically display queue with UIHandler if env setting (should probably be in sync with next todo item)
 - Consistent ephemeral messages (maybe config option?)
-- Make search respond instantly so the user knows what's happening
-- View local cache maybe?
 - Correct implementation of "delete messages" setting
+- Make search respond instantly so the user knows what's happening
 - History handler, so we know what's been played
 - Handle if metadata has been downloaded, but somehow the file does not exist (or the Song's Filename parameter is null)
+- Downloaded song library management, like size, number of songs etc
 - Actual env example
 - Fix documentation
 - Provide installation instructions (and figure out how to put this into prod lol)
-- Downloaded song library management, like size, number of songs etc
