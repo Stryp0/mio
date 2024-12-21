@@ -11,16 +11,23 @@ async function searchYouTube(query, limit, isMusic = false) {
         ? `yt-dlp --print title --print id --print duration --print uploader --print thumbnail --playlist-end ${limit} --default-search "https://music.youtube.com/search?q=" "${query}"`
         : `yt-dlp --print title --print id --print duration --print uploader --print thumbnail "ytsearch${limit}:${query}"`;
     try {
-        const { stdout } = await execPromise(baseCmd);
+        const { stdout } = await execPromise(baseCmd, { 
+            encoding: 'utf8',
+            env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+        });
+        console.log('Search Query:', query);
         return stdout.split('\n').filter(Boolean).reduce((results, line, index) => {
             if (index % 5 === 0 && results.length < limit) {
+                const title = line;
+                const uploader = stdout.split('\n')[index + 3] || 'Unknown';
                 results.push({
-                    title: line,
+                    title: title,
                     url: `https://www.youtube.com/watch?v=${stdout.split('\n')[index + 1]}`,
                     duration: parseInt(stdout.split('\n')[index + 2]) || 0,
-                    uploader: stdout.split('\n')[index + 3] || 'Unknown',
+                    uploader: uploader,
                     thumbnail: stdout.split('\n')[index + 4] || '',
                 });
+                console.log('Video Title:', title);
             }
             return results;
         }, []);
