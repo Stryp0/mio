@@ -52,6 +52,7 @@ function sanitizeTitle(title, uploader) {
 export default {
     name: 'search',
     aliases: ['s'],
+    arguments: '<search query>',
     description: 'Searches YouTube Music and YouTube for songs',
     async execute(message, args) {
         if (!message.guild || !message.member) return message.reply('This command can only be used in a server!');
