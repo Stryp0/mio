@@ -21,7 +21,7 @@ export default {
             .setTitle('Available Commands')
             .setDescription('Here are all the available commands:');
 
-        const prefix = configHandler.getGuildSetting(message.guild, 'COMMAND_PREFIX');
+        const prefix = configHandler.getGuildSetting(message.guild, 'COMMAND_PREFIX', 'string');
 
         for (const file of commandFiles) {
             const command = require(`./${file}`).default;

@@ -109,7 +109,7 @@ export default {
 
             // Add buttons or select menu based on guild setting
             const useSelectMenu = message.guild 
-                ? configHandler.getGuildSetting(message.guild, 'SEARCH_USE_SELECTMENU').toLowerCase() === 'true'
+                ? configHandler.getGuildSetting(message.guild, 'SEARCH_USE_SELECTMENU', 'boolean') 
                 : false;
 
             if (!useSelectMenu) {
