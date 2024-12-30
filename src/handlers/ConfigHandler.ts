@@ -66,6 +66,21 @@ export class ConfigHandler {
         return value;
     }
 
+    private convertToBoolean(value: string): boolean {
+        const lowercased = value.toLowerCase();
+        if (lowercased === 'true') return true;
+        if (lowercased === 'false') return false;
+        throw new Error(`Invalid boolean value: ${value}`);
+    }
+
+    private convertToNumber(value: string): number {
+        const num = Number(value);
+        if (isNaN(num)) {
+            throw new Error(`Invalid number value: ${value}`);
+        }
+        return num;
+    }
+
     // Global Settings (from .env)
     public get DISCORD_TOKEN(): string {
         return this.getEnvOrThrow('DISCORD_TOKEN');
@@ -87,8 +102,11 @@ export class ConfigHandler {
         return path.join(this.CACHE_DIR, 'songs.json');
     }
 
-    // Per-Guild Settings
-    public getGuildSetting(guild: Guild | string, settingKey: string): string {
+    // Per-Guild Settings with type conversion
+    public getGuildSetting(guild: Guild | string, settingKey: string, type: 'string'): string;
+    public getGuildSetting(guild: Guild | string, settingKey: string, type: 'number'): number;
+    public getGuildSetting(guild: Guild | string, settingKey: string, type: 'boolean'): boolean;
+    public getGuildSetting(guild: Guild | string, settingKey: string, type: 'string' | 'number' | 'boolean' = 'string'): string | number | boolean {
         const guildId = typeof guild === 'string' ? guild : guild.id;
         
         try {
@@ -100,20 +118,27 @@ export class ConfigHandler {
             const stmt = this.db!.prepare('SELECT setting_value FROM guild_settings WHERE guild_id = ? AND setting_key = ?');
             const result = stmt.get(guildId, settingKey) as { setting_value: string } | undefined;
 
-            if (result) {
-                return result.setting_value;
-            }
+            // Get the value either from DB or .env
+            const rawValue = result ? result.setting_value : this.getEnvOrThrow(settingKey);
 
-            // If no guild-specific setting, get from .env
-            return this.getEnvOrThrow(settingKey);
+            // Convert the value based on the requested type
+            switch (type) {
+                case 'boolean':
+                    return this.convertToBoolean(rawValue);
+                case 'number':
+                    return this.convertToNumber(rawValue);
+                default:
+                    return rawValue;
+            }
         } catch (error) {
             console.error(`Error getting setting '${settingKey}' for guild ${guildId}:`, error);
             throw error;
         }
     }
 
-    public setGuildSetting(guild: Guild | string, settingKey: string, value: string): void {
+    public setGuildSetting(guild: Guild | string, settingKey: string, value: string | number | boolean): void {
         const guildId = typeof guild === 'string' ? guild : guild.id;
+        const stringValue = String(value);
         
         try {
             if (!this.db) {
@@ -126,7 +151,7 @@ export class ConfigHandler {
                 ON CONFLICT(guild_id, setting_key) DO UPDATE SET setting_value = ?
             `);
             
-            stmt.run(guildId, settingKey, value, value);
+            stmt.run(guildId, settingKey, stringValue, stringValue);
         } catch (error) {
             console.error(`Error setting '${settingKey}' for guild ${guildId}:`, error);
             throw error;

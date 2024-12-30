@@ -54,7 +54,7 @@ export class CommandHandler {
 
     public handleMessage(message: Message): void {
         // Get guild-specific prefix (falls back to .env if not set)
-        const prefix = configHandler.getGuildSetting(message.guild || message.guildId || '', 'COMMAND_PREFIX');
+        const prefix = configHandler.getGuildSetting(message.guild, 'COMMAND_PREFIX', 'string');
 
         // Ignore messages from bots or messages not starting with the prefix
         if (!message.content.startsWith(prefix) || message.author.bot) return;

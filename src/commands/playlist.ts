@@ -8,7 +8,7 @@ import { promisify } from 'util';
 const execPromise = promisify(exec);
 
 function validateAndCleanYouTubePlaylistUrl(url: string): string | null {
-    const pattern = /(?:https?:\/\/)?(?:www\.)?youtube\.com\/.*?(?:\?|&)list=([a-zA-Z0-9_-]+)/;
+    const pattern = /(?:https?:\/\/)?(?:www\.|music\.)?youtube\.com\/(?:.*?(?:\?|&)list=|browse\/VL)([a-zA-Z0-9_-]+)/;
     const matches = url.match(pattern);
 
     if (matches && matches[1]) {
@@ -94,7 +94,7 @@ export default {
         }
 
         // Delete the original message if configured to do so
-        if (configHandler.getGuildSetting(message.guild, 'DELETE_BOT_COMMANDS')) {
+        if (configHandler.getGuildSetting(message.guild, 'DELETE_BOT_COMMANDS', 'boolean')) {
             await message.delete();
         }
     }
