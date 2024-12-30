@@ -12,11 +12,19 @@ export interface QueuedSong {
 }
 
 export class QueueHandler extends EventEmitter {
+    private static instance: QueueHandler;
     private queues: Map<string, QueuedSong[]>;
 
-    constructor() {
+    private constructor() {
         super();
         this.queues = new Map<string, QueuedSong[]>();
+    }
+
+    public static getInstance(): QueueHandler {
+        if (!QueueHandler.instance) {
+            QueueHandler.instance = new QueueHandler();
+        }
+        return QueueHandler.instance;
     }
 
     public clearQueue(guild: Guild): void {
@@ -157,4 +165,4 @@ export class QueueHandler extends EventEmitter {
 }
 
 // Create a singleton instance
-export const queueHandler = new QueueHandler();
+export const queueHandler = QueueHandler.getInstance();

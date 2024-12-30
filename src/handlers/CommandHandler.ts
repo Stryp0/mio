@@ -12,15 +12,23 @@ type Command = {
 };
 
 class CommandHandler {
+    private static instance: CommandHandler;
     private client: Client;
     private commands: Map<string, Command> = new Map();
     private aliases: Map<string, string> = new Map();
     private prefix: string;
 
-    constructor(client: Client) {
+    private constructor(client: Client) {
         this.client = client;
         this.prefix = process.env.COMMAND_PREFIX || "!";
         this.loadCommands();
+    }
+
+    public static getInstance(client: Client): CommandHandler {
+        if (!CommandHandler.instance) {
+            CommandHandler.instance = new CommandHandler(client);
+        }
+        return CommandHandler.instance;
     }
 
     private loadCommands(): void {
@@ -73,4 +81,4 @@ class CommandHandler {
     }
 }
 
-export default CommandHandler;
+export default CommandHandler.getInstance;

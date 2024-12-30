@@ -12,14 +12,22 @@ import { configHandler } from './ConfigHandler';
 import path from 'path';
 
 export class PlaybackHandler {
+    private static instance: PlaybackHandler;
     private readonly DOWNLOAD_CHECK_INTERVAL = 1000; // Check every second
     private readonly MAX_WAIT_TIME = 300000; // 5 minutes max wait time
     private connections: Map<string, VoiceConnection>;
     private players: Map<string, ReturnType<typeof createAudioPlayer>>;
 
-    constructor() {
+    private constructor() {
         this.connections = new Map();
         this.players = new Map();
+    }
+
+    public static getInstance(): PlaybackHandler {
+        if (!PlaybackHandler.instance) {
+            PlaybackHandler.instance = new PlaybackHandler();
+        }
+        return PlaybackHandler.instance;
     }
 
     private async waitForDownload(queuedSong: QueuedSong): Promise<boolean> {
@@ -199,5 +207,4 @@ export class PlaybackHandler {
     }
 }
 
-// Create a singleton instance
-export const playbackHandler = new PlaybackHandler();
+export const playbackHandler = PlaybackHandler.getInstance();

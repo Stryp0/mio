@@ -3,16 +3,24 @@ import { queueHandler, QueuedSong } from './QueueHandler';
 import { playbackHandler } from './PlaybackHandler';
 
 export class UIHandler {
+    private static instance: UIHandler;
     private nowPlayingMessages: Map<string, { channelId: string, messageId: string }>;
     private readonly SONGS_PER_PAGE = 10;
 
-    constructor() {
+    private constructor() {
         this.nowPlayingMessages = new Map();
         
         // Listen for queue updates
         queueHandler.on('queueUpdate', async (guild: Guild) => {
             await this.updateExistingMessage(guild);
         });
+    }
+
+    public static getInstance(): UIHandler {
+        if (!UIHandler.instance) {
+            UIHandler.instance = new UIHandler();
+        }
+        return UIHandler.instance;
     }
 
     private formatDuration(seconds: number): string {
@@ -210,5 +218,4 @@ export class UIHandler {
     }
 }
 
-// Create a singleton instance
-export const uiHandler = new UIHandler();
+export const uiHandler = UIHandler.getInstance();

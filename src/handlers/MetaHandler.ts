@@ -14,12 +14,20 @@ export interface Song {
 }
 
 export class MetaHandler {
+    private static instance: MetaHandler;
     private songs: Map<string, Song>;
 
-    constructor() {
+    private constructor() {
         this.songs = new Map<string, Song>();
         this.initializeCache();
         this.loadSongsDatabase();
+    }
+
+    public static getInstance(): MetaHandler {
+        if (!MetaHandler.instance) {
+            MetaHandler.instance = new MetaHandler();
+        }
+        return MetaHandler.instance;
     }
 
     private initializeCache(): void {
@@ -92,5 +100,4 @@ export class MetaHandler {
     }
 }
 
-// Create a singleton instance
-export const metaHandler = new MetaHandler();
+export const metaHandler = MetaHandler.getInstance();

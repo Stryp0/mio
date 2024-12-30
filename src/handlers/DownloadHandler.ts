@@ -7,7 +7,16 @@ import { configHandler } from './ConfigHandler';
 const execPromise = promisify(exec);
 
 export class DownloadHandler {
-    constructor() {}
+    private static instance: DownloadHandler;
+
+    private constructor() {}
+
+    public static getInstance(): DownloadHandler {
+        if (!DownloadHandler.instance) {
+            DownloadHandler.instance = new DownloadHandler();
+        }
+        return DownloadHandler.instance;
+    }
 
     private extractVideoId(url: string): string | null {
         const pattern = /(?:https?:\/\/)?(?:www\.)?youtu(?:be\.com|\.be)\/(?:watch\?v=)?([^&]+)/;
@@ -82,5 +91,4 @@ export class DownloadHandler {
     }
 }
 
-// Create a singleton instance
-export const downloadHandler = new DownloadHandler();
+export const downloadHandler = DownloadHandler.getInstance();
