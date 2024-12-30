@@ -63,7 +63,7 @@ export default {
             await message.reply('Sorry, the link seems to be invalid. If you are sure it is correct, please try again.');
         }
         // Delete the original message if configured to do so
-        if (configHandler.DELETE_BOT_COMMANDS) {
+        if (configHandler.getGuildSetting(message.guild, 'DELETE_BOT_COMMANDS')) {
             await message.delete();
         }
     }

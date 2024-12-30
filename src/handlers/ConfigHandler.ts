@@ -1,15 +1,20 @@
 import path from 'path';
 import dotenv from 'dotenv';
+import Database from 'better-sqlite3';
+import { Guild } from 'discord.js';
+import * as fs from 'fs';
 
 dotenv.config();
 
 export class ConfigHandler {
     private static instance: ConfigHandler;
+    private db: Database | null = null;
     
-    private constructor() {}
+    private constructor() {
+        this.initializeDatabase();
+    }
 
     public static getInstance(): ConfigHandler {
-        
         if (!ConfigHandler.instance) {
             ConfigHandler.instance = new ConfigHandler();
         }
@@ -22,11 +27,42 @@ export class ConfigHandler {
         return ConfigHandler.instance;
     }
 
+    private initializeDatabase(): void {
+        try {
+            // Ensure cache directory exists
+            const cacheDir = this.CACHE_DIR;
+            if (!fs.existsSync(cacheDir)) {
+                fs.mkdirSync(cacheDir, { recursive: true });
+            }
+
+            // Open SQLite database
+            this.db = new Database(path.join(cacheDir, 'guild_settings.db'), {
+                verbose: console.log
+            });
+
+            // Create settings table if it doesn't exist
+            this.db.exec(`
+                CREATE TABLE IF NOT EXISTS guild_settings (
+                    guild_id TEXT,
+                    setting_key TEXT,
+                    setting_value TEXT,
+                    PRIMARY KEY (guild_id, setting_key)
+                )
+            `);
+
+            // Prepare statements for better performance
+            this.db.pragma('journal_mode = WAL');
+        } catch (error) {
+            console.error('Failed to initialize database:', error);
+            throw error;
+        }
+    }
+
     private getEnvOrDefault(key: string, defaultValue: string): string {
         return process.env[key] || defaultValue;
     }
 
-    // Bot Configuration
+    // Global Settings (from .env)
     public get DISCORD_TOKEN(): string {
         return this.getEnvOrDefault('DISCORD_TOKEN', '');
     }
@@ -35,11 +71,6 @@ export class ConfigHandler {
         return this.getEnvOrDefault('CLIENT_ID', '');
     }
 
-    public get COMMAND_PREFIX(): string {
-        return this.getEnvOrDefault('COMMAND_PREFIX', '!');
-    }
-
-    // File System Configuration
     public get CACHE_DIR(): string {
         return this.getEnvOrDefault('CACHE_DIR', './cache');
     }
@@ -52,13 +83,55 @@ export class ConfigHandler {
         return path.join(this.CACHE_DIR, 'songs.json');
     }
 
-    // Bot Behavior Configuration
-    public get DELETE_BOT_COMMANDS(): boolean {
-        return this.getEnvOrDefault('DELETE_BOT_COMMANDS', 'false') === 'true';
+    // Per-Guild Settings
+    public getGuildSetting(guild: Guild | string, settingKey: string): string {
+        const guildId = typeof guild === 'string' ? guild : guild.id;
+        
+        try {
+            if (!this.db) {
+                this.initializeDatabase();
+            }
+
+            // Try to get the guild-specific setting
+            const stmt = this.db!.prepare('SELECT setting_value FROM guild_settings WHERE guild_id = ? AND setting_key = ?');
+            const result = stmt.get(guildId, settingKey) as { setting_value: string } | undefined;
+
+            if (result) {
+                return result.setting_value;
+            }
+
+            // If no guild-specific setting, get from .env
+            const envValue = this.getEnvOrDefault(settingKey, '');
+            if (envValue !== '') {
+                return envValue;
+            }
+
+            throw new Error(`Setting '${settingKey}' not found for guild ${guildId}`);
+        } catch (error) {
+            console.error(`Error getting setting '${settingKey}' for guild ${guildId}:`, error);
+            throw error;
+        }
     }
 
-    public get SEARCH_USE_SELECTMENU(): boolean {
-        return this.getEnvOrDefault('SEARCH_USE_SELECTMENU', 'false') === 'true';
+    public setGuildSetting(guild: Guild | string, settingKey: string, value: string): void {
+        const guildId = typeof guild === 'string' ? guild : guild.id;
+        
+        try {
+            if (!this.db) {
+                this.initializeDatabase();
+            }
+
+            const stmt = this.db!.prepare(`
+                INSERT INTO guild_settings (guild_id, setting_key, setting_value)
+                VALUES (?, ?, ?)
+                ON CONFLICT(guild_id, setting_key) DO UPDATE SET setting_value = ?
+            `);
+            
+            stmt.run(guildId, settingKey, value, value);
+        } catch (error) {
+            console.error(`Error setting '${settingKey}' for guild ${guildId}:`, error);
+            throw error;
+        }
     }
 }
 

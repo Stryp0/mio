@@ -15,7 +15,7 @@ export default {
         }
 
         if (args.length !== 2) {
-            await message.reply(`Please provide both the current position and the target position (e.g., ${configHandler.COMMAND_PREFIX}move 3 1).`);
+            await message.reply(`Please provide both the current position and the target position (e.g., ${configHandler.getGuildSetting(message.guild, 'COMMAND_PREFIX')}move 3 1).`);
             return;
         }
 
@@ -43,7 +43,7 @@ export default {
         }
 
         // Delete the original message if configured to do so
-        if (configHandler.DELETE_BOT_COMMANDS) {
+        if (configHandler.getGuildSetting(message.guild, 'DELETE_BOT_COMMANDS')) {
             await message.delete();
         }
     }

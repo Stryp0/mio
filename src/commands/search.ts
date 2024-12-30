@@ -107,8 +107,12 @@ export default {
             // Create components based on config
             const components: ActionRowBuilder<any>[] = [];
 
-            // Add buttons
-            if (!configHandler.SEARCH_USE_SELECTMENU) {
+            // Add buttons or select menu based on guild setting
+            const useSelectMenu = message.guild 
+                ? configHandler.getGuildSetting(message.guild, 'SEARCH_USE_SELECTMENU').toLowerCase() === 'true'
+                : false;
+
+            if (!useSelectMenu) {
                 const buttonRow = new ActionRowBuilder<ButtonBuilder>()
                     .addComponents(
                         ...allResults.map((result, index) =>

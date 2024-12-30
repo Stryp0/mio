@@ -1,9 +1,7 @@
 import { Client, Message } from "discord.js";
 import fs from "fs";
 import path from "path";
-import dotenv from "dotenv";
-
-dotenv.config();
+import { configHandler } from "./ConfigHandler";
 
 type Command = {
     name: string;
@@ -16,11 +14,9 @@ class CommandHandler {
     private client: Client;
     private commands: Map<string, Command> = new Map();
     private aliases: Map<string, string> = new Map();
-    private prefix: string;
 
     private constructor(client: Client) {
         this.client = client;
-        this.prefix = process.env.COMMAND_PREFIX || "!";
         this.loadCommands();
     }
 
@@ -52,11 +48,14 @@ class CommandHandler {
     }
 
     public handleMessage(message: Message): void {
+        // Get guild-specific prefix (falls back to .env if not set)
+        const prefix = configHandler.getGuildSetting(message.guild || message.guildId || '', 'COMMAND_PREFIX');
+
         // Ignore messages from bots or messages not starting with the prefix
-        if (!message.content.startsWith(this.prefix) || message.author.bot) return;
+        if (!message.content.startsWith(prefix) || message.author.bot) return;
 
         // Parse command and arguments
-        const args = message.content.slice(this.prefix.length).trim().split(/ +/);
+        const args = message.content.slice(prefix.length).trim().split(/ +/);
         const commandName = args.shift()?.toLowerCase();
 
         if (!commandName) return;
