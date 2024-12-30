@@ -58,21 +58,25 @@ export class ConfigHandler {
         }
     }
 
-    private getEnvOrDefault(key: string, defaultValue: string): string {
-        return process.env[key] || defaultValue;
+    private getEnvOrThrow(key: string): string {
+        const value = process.env[key];
+        if (!value) {
+            throw new Error(`Environment variable '${key}' must be set in .env file`);
+        }
+        return value;
     }
 
     // Global Settings (from .env)
     public get DISCORD_TOKEN(): string {
-        return this.getEnvOrDefault('DISCORD_TOKEN', '');
+        return this.getEnvOrThrow('DISCORD_TOKEN');
     }
 
     public get CLIENT_ID(): string {
-        return this.getEnvOrDefault('CLIENT_ID', '');
+        return this.getEnvOrThrow('CLIENT_ID');
     }
 
     public get CACHE_DIR(): string {
-        return this.getEnvOrDefault('CACHE_DIR', './cache');
+        return this.getEnvOrThrow('CACHE_DIR');
     }
 
     public get SONGS_DIR(): string {
@@ -101,12 +105,7 @@ export class ConfigHandler {
             }
 
             // If no guild-specific setting, get from .env
-            const envValue = this.getEnvOrDefault(settingKey, '');
-            if (envValue !== '') {
-                return envValue;
-            }
-
-            throw new Error(`Setting '${settingKey}' not found for guild ${guildId}`);
+            return this.getEnvOrThrow(settingKey);
         } catch (error) {
             console.error(`Error getting setting '${settingKey}' for guild ${guildId}:`, error);
             throw error;
