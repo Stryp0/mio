@@ -1,6 +1,6 @@
 import { Client, GatewayIntentBits } from 'discord.js';
-import CommandHandler from './handlers/CommandHandler';
-import { ConfigHandler } from './handlers/ConfigHandler';
+import { commandHandler } from './handlers/CommandHandler';
+import { configHandler } from './handlers/ConfigHandler';
 import { uiHandler } from './handlers/UIHandler';
 
 const client = new Client({
@@ -12,8 +12,7 @@ const client = new Client({
     ],
 });
 
-const commandHandler = new CommandHandler(client);
-const configHandler = ConfigHandler.getInstance();
+commandHandler.initialize(client);
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user?.tag}!`);

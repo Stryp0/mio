@@ -9,22 +9,27 @@ type Command = {
     execute: (message: Message, args: string[]) => void;
 };
 
-class CommandHandler {
+export class CommandHandler {
     private static instance: CommandHandler;
     private client: Client;
     private commands: Map<string, Command> = new Map();
     private aliases: Map<string, string> = new Map();
 
-    private constructor(client: Client) {
-        this.client = client;
-        this.loadCommands();
+    private constructor() {
+        this.commands = new Map();
+        this.aliases = new Map();
     }
 
-    public static getInstance(client: Client): CommandHandler {
+    public static getInstance(): CommandHandler {
         if (!CommandHandler.instance) {
-            CommandHandler.instance = new CommandHandler(client);
+            CommandHandler.instance = new CommandHandler();
         }
         return CommandHandler.instance;
+    }
+
+    public initialize(client: Client): void {
+        this.client = client;
+        this.loadCommands();
     }
 
     private loadCommands(): void {
@@ -80,4 +85,4 @@ class CommandHandler {
     }
 }
 
-export default CommandHandler.getInstance;
+export const commandHandler = CommandHandler.getInstance();
