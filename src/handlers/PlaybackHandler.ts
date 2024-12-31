@@ -1,4 +1,4 @@
-import { Guild, GuildMember } from 'discord.js';
+import { Guild, GuildMember, Collection } from 'discord.js';
 import { 
     createAudioResource, 
     createAudioPlayer, 
@@ -10,17 +10,21 @@ import {
 import { queueHandler, QueuedSong } from './QueueHandler';
 import { configHandler } from './ConfigHandler';
 import path from 'path';
+import { client } from '../index'; 
 
 export class PlaybackHandler {
     private static instance: PlaybackHandler;
     private readonly DOWNLOAD_CHECK_INTERVAL = 1000; // Check every second
     private readonly MAX_WAIT_TIME = 300000; // 5 minutes max wait time
+    private readonly IDLE_CHECK_INTERVAL = 10000; // Check every 10 seconds
     private connections: Map<string, VoiceConnection>;
     private players: Map<string, ReturnType<typeof createAudioPlayer>>;
+    private idleTimestamps: Map<string, number> = new Map();
 
     private constructor() {
         this.connections = new Map();
         this.players = new Map();
+        this.startIdleCheck();
     }
 
     public static getInstance(): PlaybackHandler {
@@ -78,6 +82,37 @@ export class PlaybackHandler {
     private isPlaying(guild: Guild): boolean {
         const player = this.getPlayer(guild);
         return player?.state.status === AudioPlayerStatus.Playing;
+    }
+
+    private startIdleCheck() {
+        setInterval(() => {
+            this.connections.forEach((connection, guildId) => {
+                const guild = client.guilds.cache.get(guildId);
+                const channel = connection.joinConfig.channelId;
+                const voiceChannel = guild?.channels.cache.get(channel);
+
+                if (voiceChannel && voiceChannel.members instanceof Collection && voiceChannel.members.size === 1) { // Bot is alone
+                    const now = Date.now();
+                    this.idleTimestamps.set(guildId, now);
+
+                    const isPlaying = this.isPlaying(guild);
+                    const idleTime = now - (this.idleTimestamps.get(guildId) || 0);
+                    const idleTimeout = configHandler.getGuildSetting(guildId, 'PLAYBACK_IDLE_TIMEOUT', 'number');
+                    const activeTimeout = configHandler.getGuildSetting(guildId, 'PLAYBACK_ACTIVE_TIMEOUT', 'number');
+                    const activeAction = configHandler.getGuildSetting(guildId, 'PLAYBACK_ACTIVE_TIMEOUT_ACTION', 'string');
+
+                    if (!isPlaying && idleTime > idleTimeout * 1000) {
+                        this.stopPlayback(guild);
+                    } else if (isPlaying && idleTime > activeTimeout * 1000) {
+                        if (activeAction === 'pause') {
+                            this.pausePlayback(guild);
+                        } else if (activeAction === 'stop') {
+                            this.stopPlayback(guild);
+                        }
+                    }
+                }
+            });
+        }, this.IDLE_CHECK_INTERVAL);
     }
 
     public async startPlayback(guild: Guild, member: GuildMember): Promise<void> {
