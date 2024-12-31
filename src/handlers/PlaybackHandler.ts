@@ -111,6 +111,8 @@ export class PlaybackHandler {
                                 this.pausePlayback(guild);
                             }
                         } else {
+                            // Reset idle timestamp if bot is not alone
+                            this.idleTimestamps.delete(guildId);
                         }
                     } else {
                     }
