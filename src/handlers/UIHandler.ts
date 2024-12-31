@@ -4,7 +4,7 @@ import { playbackHandler } from './PlaybackHandler';
 
 export class UIHandler {
     private static instance: UIHandler;
-    private nowPlayingMessages: Map<string, { channelId: string, messageId: string }>;
+    private nowPlayingMessages: Map<string, { channelId: string, messageId: string, currentPage: number }>;
     private readonly SONGS_PER_PAGE = 10;
 
     private constructor() {
@@ -36,7 +36,7 @@ export class UIHandler {
         }
     }
 
-    private createNowPlayingEmbed(currentItem: QueuedSong | null, queueItems: QueuedSong[]): EmbedBuilder {
+    private createNowPlayingEmbed(currentItem: QueuedSong | null, queueItems: QueuedSong[], page: number = 0): EmbedBuilder {
         const embed = new EmbedBuilder()
             .setColor('#23A55A')
             .setTitle('🎵 Now Playing');
@@ -52,26 +52,31 @@ export class UIHandler {
                     value: `Duration: ${this.formatDuration(currentItem.song.Duration)}`
                 });
 
-            // Add up to X next songs as a simple list
-            const nextSongs = queueItems.slice(1, this.SONGS_PER_PAGE);
+            // Calculate start and end indices for the current page
+            // Add 1 to account for current song being at index 0
+            const startIdx = page * this.SONGS_PER_PAGE + 1;
+            const endIdx = startIdx + this.SONGS_PER_PAGE;
+            const nextSongs = queueItems.slice(startIdx, endIdx);
+
             if (nextSongs.length > 0) {
                 const nextSongsList = nextSongs
                     .map((item, index) => 
-                        `${index}. **${item.song.Artist} - ${item.song.Title}** ` +
+                        `${startIdx + index}. **${item.song.Artist} - ${item.song.Title}** ` +
                         `(${this.formatDuration(item.song.Duration)}) *- by ${item.requestedBy.username}*`
                     )
                     .join('\n');
 
                 embed.addFields({
-                    name: 'Up Next',
+                    name: page === 0 ? 'Up Next' : `Queue (Page ${page + 1})`,
                     value: nextSongsList
                 });
             }
 
-            // If there are more songs in queue, add a note
-            if (queueItems.length > this.SONGS_PER_PAGE) {
+            // Show total remaining songs
+            const remainingSongs = queueItems.length - endIdx;
+            if (remainingSongs > 0) {
                 embed.setFooter({ 
-                    text: `And ${queueItems.length - this.SONGS_PER_PAGE} more songs in queue...\n` +
+                    text: `And ${remainingSongs} more songs in queue...\n` +
                     `Total queue duration: ${this.formatDuration(queueItems.reduce((total, item) => total + item.song.Duration, 0))}`
                 });
             } else {
@@ -131,9 +136,26 @@ export class UIHandler {
                 await message.delete();
                 this.nowPlayingMessages.delete(guild.id);
             } else {
-                const embed = this.createNowPlayingEmbed(currentItem, queueItems);
+                // Check if current page is now invalid due to queue getting shorter
+                const maxPages = Math.ceil((queueItems.length - 1) / this.SONGS_PER_PAGE);
+                if (messageInfo.currentPage >= maxPages) {
+                    messageInfo.currentPage = Math.max(0, maxPages - 1);
+                }
+
+                const embed = this.createNowPlayingEmbed(currentItem, queueItems, messageInfo.currentPage);
                 const row = this.createControlButtons(guild);
+
                 await message.edit({ embeds: [embed], components: [row] });
+
+                // Remove all reactions and add new ones
+                await message.reactions.removeAll();
+                
+                if (messageInfo.currentPage > 0) {
+                    await message.react('⬅️');
+                }
+                if (messageInfo.currentPage < maxPages - 1) {
+                    await message.react('➡️');
+                }
             }
         } catch (error) {
             console.error('Failed to update message:', error);
@@ -179,6 +201,41 @@ export class UIHandler {
         }
     }
 
+    public async handleReactionAdd(guild: Guild, messageId: string, emoji: string, userId: string): Promise<void> {
+        const messageInfo = this.nowPlayingMessages.get(guild.id);
+        if (!messageInfo || messageInfo.messageId !== messageId) return;
+
+        const channel = guild.channels.cache.get(messageInfo.channelId) as TextChannel;
+        if (!channel) return;
+
+        try {
+            const message = await channel.messages.fetch(messageId);
+            const queueItems = queueHandler.getQueue(guild);
+            const maxPages = Math.ceil(queueItems.length / this.SONGS_PER_PAGE);
+
+            // Handle pagination
+            if (emoji === '⬅️' && messageInfo.currentPage > 0) {
+                messageInfo.currentPage--;
+                await this.updateExistingMessage(guild);
+            } else if (emoji === '➡️' && messageInfo.currentPage < maxPages - 1) {
+                messageInfo.currentPage++;
+                await this.updateExistingMessage(guild);
+            }
+
+            // Remove user's reaction
+            const userReactions = message.reactions.cache.filter(reaction => reaction.users.cache.has(userId));
+            try {
+                for (const reaction of userReactions.values()) {
+                    await reaction.users.remove(userId);
+                }
+            } catch (error) {
+                console.error('Failed to remove reactions:', error);
+            }
+        } catch (error) {
+            console.error('Error handling reaction:', error);
+        }
+    }
+
     public async displayQueue(channel: TextChannel, guild: Guild): Promise<void> {
         // Delete existing message if it exists
         const existingMessage = this.nowPlayingMessages.get(guild.id);
@@ -197,19 +254,25 @@ export class UIHandler {
         const currentItem = queueHandler.getCurrentQueueItem(guild);
         const queueItems = queueHandler.getQueue(guild);
 
-        // Don't create a new message if there's nothing to show
         if (!currentItem && queueItems.length === 0) {
-            this.nowPlayingMessages.delete(guild.id);
+            await channel.send('The queue is empty!');
             return;
         }
 
-        const embed = this.createNowPlayingEmbed(currentItem, queueItems);
+        const embed = this.createNowPlayingEmbed(currentItem, queueItems, 0);
         const row = this.createControlButtons(guild);
-
         const message = await channel.send({ embeds: [embed], components: [row] });
-        this.nowPlayingMessages.set(guild.id, { 
-            channelId: channel.id, 
-            messageId: message.id 
+
+        // Add initial pagination reactions if needed
+        if (queueItems.length > this.SONGS_PER_PAGE) {
+            await message.react('➡️');
+        }
+
+        // Store the message info with initial page 0
+        this.nowPlayingMessages.set(guild.id, {
+            channelId: channel.id,
+            messageId: message.id,
+            currentPage: 0
         });
     }
 

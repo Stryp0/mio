@@ -9,6 +9,7 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMessageReactions,
     ],
 });
 
@@ -24,6 +25,30 @@ client.once('ready', () => {
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isButton()) return;
     await uiHandler.handleButtonInteraction(interaction);
+});
+
+// Handle reaction events
+client.on('messageReactionAdd', async (reaction, user) => {
+    if (user.bot) return; // Ignore bot reactions
+    
+    try {
+        // When we receive a reaction we check if the message needs to be fetched
+        if (reaction.partial) {
+            await reaction.fetch();
+        }
+
+        const guild = reaction.message.guild;
+        if (!guild) return;
+
+        await uiHandler.handleReactionAdd(
+            guild,
+            reaction.message.id,
+            reaction.emoji.name ?? '',
+            user.id
+        );
+    } catch (error) {
+        console.error('Error handling reaction:', error);
+    }
 });
 
 // Error handling
