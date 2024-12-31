@@ -1,8 +1,8 @@
 import { Guild, GuildMember, Collection } from 'discord.js';
-import { 
-    createAudioResource, 
-    createAudioPlayer, 
-    joinVoiceChannel, 
+import {
+    createAudioResource,
+    createAudioPlayer,
+    joinVoiceChannel,
     DiscordGatewayAdapterCreator,
     AudioPlayerStatus,
     VoiceConnection
@@ -10,7 +10,7 @@ import {
 import { queueHandler, QueuedSong } from './QueueHandler';
 import { configHandler } from './ConfigHandler';
 import path from 'path';
-import { client } from '../index'; 
+import { client } from '../index';
 
 export class PlaybackHandler {
     private static instance: PlaybackHandler;
@@ -36,15 +36,15 @@ export class PlaybackHandler {
 
     private async waitForDownload(queuedSong: QueuedSong): Promise<boolean> {
         const startTime = Date.now();
-        
+
         while (queuedSong.song.Filename === null) {
             if (Date.now() - startTime > this.MAX_WAIT_TIME) {
                 throw new Error('Timed out waiting for song to download');
             }
-            
+
             await new Promise(resolve => setTimeout(resolve, this.DOWNLOAD_CHECK_INTERVAL));
         }
-        
+
         return true;
     }
 
@@ -64,7 +64,7 @@ export class PlaybackHandler {
             const audioPath = path.join(configHandler.SONGS_DIR, nextSong.song.Filename!);
             const resource = createAudioResource(audioPath);
             const player = this.players.get(guild.id);
-            
+
             if (player) {
                 player.play(resource);
             }
@@ -91,25 +91,30 @@ export class PlaybackHandler {
                 const channel = connection.joinConfig.channelId;
                 const voiceChannel = guild?.channels.cache.get(channel);
 
-                if (voiceChannel && voiceChannel.members instanceof Collection && voiceChannel.members.size === 1) { // Bot is alone
-                    const now = Date.now();
-                    this.idleTimestamps.set(guildId, now);
+                if (voiceChannel && voiceChannel.members) {
+                    if ('size' in voiceChannel.members) {
+                        const memberCount = (voiceChannel.members as Collection<string, GuildMember>).size;
+                        const now = Date.now();
+                        const isPlaying = this.isPlaying(guild);
+                        const idleTime = now - (this.idleTimestamps.get(guildId) || now);
 
-                    const isPlaying = this.isPlaying(guild);
-                    const idleTime = now - (this.idleTimestamps.get(guildId) || 0);
-                    const idleTimeout = configHandler.getGuildSetting(guildId, 'PLAYBACK_IDLE_TIMEOUT', 'number');
-                    const activeTimeout = configHandler.getGuildSetting(guildId, 'PLAYBACK_ACTIVE_TIMEOUT', 'number');
-                    const activeAction = configHandler.getGuildSetting(guildId, 'PLAYBACK_ACTIVE_TIMEOUT_ACTION', 'string');
+                        if (memberCount === 1) { // Bot is alone
+                            if (!this.idleTimestamps.has(guildId)) {
+                                this.idleTimestamps.set(guildId, now);
+                            }
+                            const idleTimeout = configHandler.getGuildSetting(guildId, 'PLAYBACK_IDLE_TIMEOUT', 'number');
+                            const activeTimeout = configHandler.getGuildSetting(guildId, 'PLAYBACK_ACTIVE_TIMEOUT', 'number');
 
-                    if (!isPlaying && idleTime > idleTimeout * 1000) {
-                        this.stopPlayback(guild);
-                    } else if (isPlaying && idleTime > activeTimeout * 1000) {
-                        if (activeAction === 'pause') {
-                            this.pausePlayback(guild);
-                        } else if (activeAction === 'stop') {
-                            this.stopPlayback(guild);
+                            if (!isPlaying && idleTime > idleTimeout * 1000) {
+                                this.stopPlayback(guild);
+                            } else if (isPlaying && idleTime > activeTimeout * 1000) {
+                                this.pausePlayback(guild);
+                            }
+                        } else {
                         }
+                    } else {
                     }
+                } else {
                 }
             });
         }, this.IDLE_CHECK_INTERVAL);
@@ -174,7 +179,7 @@ export class PlaybackHandler {
             if (!connection.subscribe(player)) {
                 throw new Error('Failed to subscribe connection to player');
             }
-            
+
         } catch (error) {
             throw error;
         }
@@ -236,7 +241,7 @@ export class PlaybackHandler {
         const player = this.getPlayer(guild);
         if (player && player.state.status === AudioPlayerStatus.Playing) {
             const duration = player.state.playbackDuration;
-            return duration / 1000; 
+            return duration / 1000;
         }
         return null;
     }
