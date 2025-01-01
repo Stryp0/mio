@@ -1,5 +1,4 @@
 # TODO
-- Configurable timeout after the bot has been left alone (and pause/stop if playback is ongoing, if not, disconnect from channel)
 - Per-server onboarding and configuration options
 - Migrate databases to MongoDB
 - Needs checks for all (playback only?) commands to force users to be in a voice channel
