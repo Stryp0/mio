@@ -6,6 +6,11 @@ import * as fs from 'fs';
 
 dotenv.config();
 
+    /**
+     * Class that handles configuration of the bot.
+     *
+     * Contains methods for getting and setting guild settings, as well as environment variables.
+     */
 export class ConfigHandler {
     private static instance: ConfigHandler;
     private db: Database | null = null;
@@ -19,7 +24,6 @@ export class ConfigHandler {
             ConfigHandler.instance = new ConfigHandler();
         }
 
-        // Check if required environment variables are set
         if (!ConfigHandler.instance.DISCORD_TOKEN || !ConfigHandler.instance.CLIENT_ID) {
             throw new Error('DISCORD_TOKEN and CLIENT_ID environment variables must be set');
         }
@@ -29,18 +33,15 @@ export class ConfigHandler {
 
     private initializeDatabase(): void {
         try {
-            // Ensure cache directory exists
             const cacheDir = this.CACHE_DIR;
             if (!fs.existsSync(cacheDir)) {
                 fs.mkdirSync(cacheDir, { recursive: true });
             }
 
-            // Open SQLite database
             this.db = new Database(path.join(cacheDir, 'guild_settings.db'), {
                 verbose: console.log
             });
 
-            // Create settings table if it doesn't exist
             this.db.exec(`
                 CREATE TABLE IF NOT EXISTS guild_settings (
                     guild_id TEXT,
@@ -50,7 +51,6 @@ export class ConfigHandler {
                 )
             `);
 
-            // Prepare statements for better performance
             this.db.pragma('journal_mode = WAL');
         } catch (error) {
             console.error('Failed to initialize database:', error);
@@ -81,7 +81,6 @@ export class ConfigHandler {
         return num;
     }
 
-    // Global Settings (from .env)
     public get DISCORD_TOKEN(): string {
         return this.getEnvOrThrow('DISCORD_TOKEN');
     }
@@ -102,7 +101,21 @@ export class ConfigHandler {
         return path.join(this.CACHE_DIR, 'songs.json');
     }
 
-    // Per-Guild Settings with type conversion
+    /**
+     * Gets a guild setting, with an optional type parameter to specify how to
+     * parse the value. If the type parameter is not specified, the value is
+     * returned as a string.
+     *
+     * If the setting is not found in the database, the value of the environment
+     * variable with the same name is returned.
+     * 
+     * @param guild The guild for which to get the setting.
+     * @param settingKey The key of the setting to get.
+     * @param type The type to parse the setting value as. Possible values are 'string', 'number', or 'boolean'.
+     * If not specified, the value is returned as a string.
+     * @returns The value of the setting, or the value of the environment variable
+     * with the same name if the setting is not found.
+     */
     public getGuildSetting(guild: Guild | string, settingKey: string, type: 'string'): string;
     public getGuildSetting(guild: Guild | string, settingKey: string, type: 'number'): number;
     public getGuildSetting(guild: Guild | string, settingKey: string, type: 'boolean'): boolean;
@@ -114,14 +127,11 @@ export class ConfigHandler {
                 this.initializeDatabase();
             }
 
-            // Try to get the guild-specific setting
             const stmt = this.db!.prepare('SELECT setting_value FROM guild_settings WHERE guild_id = ? AND setting_key = ?');
             const result = stmt.get(guildId, settingKey) as { setting_value: string } | undefined;
 
-            // Get the value either from DB or .env
             const rawValue = result ? result.setting_value : this.getEnvOrThrow(settingKey);
 
-            // Convert the value based on the requested type
             switch (type) {
                 case 'boolean':
                     return this.convertToBoolean(rawValue);
@@ -136,6 +146,16 @@ export class ConfigHandler {
         }
     }
 
+    /**
+     * Sets a setting for the specified guild.
+     * 
+     * The setting is stored in the database and can be retrieved later using
+     * the {@link ConfigHandler.getGuildSetting} method.
+     * 
+     * @param guild The guild to set the setting for.
+     * @param settingKey The key of the setting to set.
+     * @param value The value to set the setting to. This can be a string, number, or boolean.
+     */
     public setGuildSetting(guild: Guild | string, settingKey: string, value: string | number | boolean): void {
         const guildId = typeof guild === 'string' ? guild : guild.id;
         const stringValue = String(value);

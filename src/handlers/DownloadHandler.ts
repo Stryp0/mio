@@ -6,6 +6,13 @@ import { configHandler } from './ConfigHandler';
 
 const execPromise = promisify(exec);
 
+    /**
+     * Class responsible for downloading songs and their metadata from YouTube.
+     *
+     * The DownloadHandler class is responsible for downloading the metadata of songs from YouTube,
+     * as well as downloading the song files themselves. It provides methods for downloading
+     * song metadata, downloading song files, and downloading both simultaneously.
+     */
 export class DownloadHandler {
     private static instance: DownloadHandler;
 
@@ -18,16 +25,43 @@ export class DownloadHandler {
         return DownloadHandler.instance;
     }
 
+    /**
+     * Extracts the video ID from a YouTube URL.
+     *
+     * @param url - The YouTube URL to extract the video ID from.
+     * @returns The extracted video ID if the URL is valid, otherwise null.
+     */
     private extractVideoId(url: string): string | null {
         const pattern = /(?:https?:\/\/)?(?:www\.)?youtu(?:be\.com|\.be)\/(?:watch\?v=)?([^&]+)/;
         const match = url.match(pattern);
         return match ? match[1] : null;
     }
 
+    /**
+     * Removes markdown characters from a given text string.
+     *
+     * This function strips characters commonly used for markdown formatting,
+     * such as asterisks, underscores, and brackets, to prevent formatting 
+     * issues when displaying text in environments that interpret markdown.
+     *
+     * @param text - The input text from which to remove markdown characters.
+     * @returns A new string with markdown characters removed.
+     */
     private cleanMarkdownCharacters(text: string): string {
         return text.replace(/[\*\_\#\[\]\(\)\~\`\>\|\\\{\}]/g, '');
     }
 
+    /**
+     * Downloads the metadata for a given YouTube song.
+     *
+     * This method uses yt-dlp to fetch the metadata of a YouTube video, including
+     * the video title, artist (uploader), thumbnail, and duration.
+     *
+     * @param link - The YouTube URL of the song to download.
+     * @returns A Song object containing the fetched metadata if the operation is
+     * successful, otherwise null.
+     * @throws {Error} If the YouTube URL is invalid.
+     */
     public async downloadSongMetadata(link: string): Promise<Song | null> {
         const videoId = this.extractVideoId(link);
         if (!videoId) {
@@ -46,7 +80,7 @@ export class DownloadHandler {
                 Artist: videoArtist,
                 Title: videoTitle,
                 Thumbnail: videoInfo.thumbnail,
-                Filename: null, // Start with null, will be set after download
+                Filename: null,
                 Link: link,
                 Track: videoArtist + ' - ' + videoTitle,
                 ID: videoId,
@@ -60,6 +94,17 @@ export class DownloadHandler {
         }
     }
 
+    /**
+     * Downloads the audio file for a given song.
+     *
+     * This method uses yt-dlp to download the audio file for a YouTube video.
+     * It saves the file in the directory specified in the SONGS_DIR environment variable,
+     * with the filename being the video ID with an .opus extension.
+     *
+     * @param song - The song to download the audio file for.
+     * @returns A boolean indicating whether the download was successful.
+     * @throws {Error} If the download fails for any reason.
+     */
     private async downloadSong(song: Song): Promise<boolean> {
         try {
             const filename = `${song.ID}.opus`;
@@ -68,7 +113,6 @@ export class DownloadHandler {
             
             await execPromise(cmd);
             
-            // Update the song's filename after successful download
             song.Filename = filename;
             return true;
         } catch (error) {
@@ -77,14 +121,23 @@ export class DownloadHandler {
         }
     }
 
+    /**
+     * Downloads the metadata and audio file for a given song.
+     *
+     * This method first downloads the metadata for the song using downloadSongMetadata.
+     * If the metadata download fails, it returns an object with null metadata and a resolved promise.
+     * If the metadata download succeeds, it downloads the audio file for the song using downloadSong,
+     * and returns an object with the metadata and a promise that resolves when the download is complete.
+     *
+     * @param link - The YouTube link of the song to download.
+     * @returns An object containing the song metadata and a download promise.
+     */
     public async downloadSongAndMetadata(link: string): Promise<{ metadata: Song | null, downloadPromise: Promise<boolean> }> {
-        // First get metadata
         const songMetadata = await this.downloadSongMetadata(link);
         if (!songMetadata) {
             return { metadata: null, downloadPromise: Promise.resolve(false) };
         }
 
-        // Start the download process but don't wait for it
         const downloadPromise = this.downloadSong(songMetadata);
 
         return { metadata: songMetadata, downloadPromise };

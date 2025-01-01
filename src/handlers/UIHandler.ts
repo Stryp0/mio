@@ -2,6 +2,10 @@ import { TextChannel, EmbedBuilder, Guild, ActionRowBuilder, ButtonBuilder, Butt
 import { queueHandler, QueuedSong } from './QueueHandler';
 import { playbackHandler } from './PlaybackHandler';
 
+/**
+ * UIHandler manages the user interface for the music queue system.
+ * It handles displaying the now-playing embed, queue updates, control buttons, and user interactions.
+ */
 export class UIHandler {
     private static instance: UIHandler;
     private nowPlayingMessages: Map<string, { channelId: string, messageId: string, currentPage: number }>;
@@ -9,8 +13,6 @@ export class UIHandler {
 
     private constructor() {
         this.nowPlayingMessages = new Map();
-        
-        // Listen for queue updates
         queueHandler.on('queueUpdate', async (guild: Guild) => {
             await this.updateExistingMessage(guild);
         });
@@ -52,8 +54,6 @@ export class UIHandler {
                     value: `Duration: ${this.formatDuration(currentItem.song.Duration)}`
                 });
 
-            // Calculate start and end indices for the current page
-            // Add 1 to account for current song being at index 0
             const startIdx = page * this.SONGS_PER_PAGE + 1;
             const endIdx = startIdx + this.SONGS_PER_PAGE;
             const nextSongs = queueItems.slice(startIdx, endIdx);
@@ -72,7 +72,6 @@ export class UIHandler {
                 });
             }
 
-            // Show total remaining songs
             const remainingSongs = queueItems.length - endIdx;
             if (remainingSongs > 0) {
                 embed.setFooter({ 
@@ -120,6 +119,11 @@ export class UIHandler {
         return row;
     }
 
+    /**
+     * Updates the now-playing message in the specified guild, refreshing the embed and controls.
+     * @param {Guild} guild - The guild where the message should be updated.
+     * @returns {Promise<void>} A promise that resolves when the update is complete.
+     */
     private async updateExistingMessage(guild: Guild): Promise<void> {
         const messageInfo = this.nowPlayingMessages.get(guild.id);
         if (!messageInfo) return;
@@ -136,7 +140,6 @@ export class UIHandler {
                 await message.delete();
                 this.nowPlayingMessages.delete(guild.id);
             } else {
-                // Check if current page is now invalid due to queue getting shorter
                 const maxPages = Math.ceil((queueItems.length - 1) / this.SONGS_PER_PAGE);
                 if (messageInfo.currentPage >= maxPages) {
                     messageInfo.currentPage = Math.max(0, maxPages - 1);
@@ -147,7 +150,6 @@ export class UIHandler {
 
                 await message.edit({ embeds: [embed], components: [row] });
 
-                // Remove all reactions and add new ones
                 await message.reactions.removeAll();
                 
                 if (messageInfo.currentPage > 0) {
@@ -163,6 +165,11 @@ export class UIHandler {
         }
     }
 
+    /**
+     * Handles button interactions for music controls such as skip, shuffle, pause, and stop.
+     * @param {ButtonInteraction} interaction - The button interaction from the user.
+     * @returns {Promise<void>} A promise that resolves when the interaction is handled.
+     */
     public async handleButtonInteraction(interaction: ButtonInteraction): Promise<void> {
         if (!interaction.guild) return;
 
@@ -201,6 +208,14 @@ export class UIHandler {
         }
     }
 
+    /**
+     * Handles reactions added to the now-playing message for pagination purposes.
+     * @param {Guild} guild - The guild where the reaction was added.
+     * @param {string} messageId - The ID of the message the reaction was added to.
+     * @param {string} emoji - The emoji used in the reaction.
+     * @param {string} userId - The ID of the user who added the reaction.
+     * @returns {Promise<void>} A promise that resolves when the reaction is handled.
+     */
     public async handleReactionAdd(guild: Guild, messageId: string, emoji: string, userId: string): Promise<void> {
         const messageInfo = this.nowPlayingMessages.get(guild.id);
         if (!messageInfo || messageInfo.messageId !== messageId) return;
@@ -213,7 +228,6 @@ export class UIHandler {
             const queueItems = queueHandler.getQueue(guild);
             const maxPages = Math.ceil(queueItems.length / this.SONGS_PER_PAGE);
 
-            // Handle pagination
             if (emoji === '⬅️' && messageInfo.currentPage > 0) {
                 messageInfo.currentPage--;
                 await this.updateExistingMessage(guild);
@@ -222,7 +236,6 @@ export class UIHandler {
                 await this.updateExistingMessage(guild);
             }
 
-            // Remove user's reaction
             const userReactions = message.reactions.cache.filter(reaction => reaction.users.cache.has(userId));
             try {
                 for (const reaction of userReactions.values()) {
@@ -236,8 +249,13 @@ export class UIHandler {
         }
     }
 
+    /**
+     * Displays the queue in the specified text channel with pagination and control buttons.
+     * @param {TextChannel} channel - The channel where the queue should be displayed.
+     * @param {Guild} guild - The guild where the queue belongs.
+     * @returns {Promise<void>} A promise that resolves when the queue is displayed.
+     */
     public async displayQueue(channel: TextChannel, guild: Guild): Promise<void> {
-        // Delete existing message if it exists
         const existingMessage = this.nowPlayingMessages.get(guild.id);
         if (existingMessage) {
             try {
@@ -263,12 +281,10 @@ export class UIHandler {
         const row = this.createControlButtons(guild);
         const message = await channel.send({ embeds: [embed], components: [row] });
 
-        // Add initial pagination reactions if needed
         if (queueItems.length > this.SONGS_PER_PAGE) {
             await message.react('➡️');
         }
 
-        // Store the message info with initial page 0
         this.nowPlayingMessages.set(guild.id, {
             channelId: channel.id,
             messageId: message.id,
@@ -276,6 +292,11 @@ export class UIHandler {
         });
     }
 
+    /**
+     * Updates the now-playing message in the specified guild, refreshing the embed and controls.
+     * @param {Guild} guild - The guild where the message should be updated.
+     * @returns {Promise<void>} A promise that resolves when the update is complete.
+     */
     public async updateNowPlaying(guild: Guild): Promise<void> {
         await this.updateExistingMessage(guild);
     }

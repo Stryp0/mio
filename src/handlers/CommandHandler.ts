@@ -9,6 +9,13 @@ type Command = {
     execute: (message: Message, args: string[]) => void;
 };
 
+/**
+ * A singleton class responsible for handling command registration and execution.
+ * 
+ * CommandHandler manages the loading of command modules from a specified directory,
+ * maps command names and aliases to their respective command handlers, and listens
+ * for incoming messages to execute the appropriate commands based on user input.
+ */
 export class CommandHandler {
     private static instance: CommandHandler;
     private client: Client;
@@ -32,6 +39,15 @@ export class CommandHandler {
         this.loadCommands();
     }
 
+    /**
+     * Loads command modules from the specified directory and registers them.
+     * 
+     * This method reads all TypeScript files in the 'commands' directory, dynamically imports
+     * each command module, and populates the `commands` and `aliases` maps with command names
+     * and their respective aliases for quick lookup during command execution.
+     * 
+     * Ensures that each command is registered with its name and any available aliases.
+     */
     private loadCommands(): void {
         const commandsPath = path.resolve(__dirname, "../commands");
         const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".ts"));
@@ -41,7 +57,6 @@ export class CommandHandler {
             const command = require(commandPath).default as Command;
             this.commands.set(command.name, command);
             
-            // Register aliases if they exist
             if (command.aliases) {
                 for (const alias of command.aliases) {
                     this.aliases.set(alias, command.name);
@@ -52,20 +67,27 @@ export class CommandHandler {
         console.log(`Loaded ${this.commands.size} commands with ${this.aliases.size} aliases.`);
     }
 
+    /**
+     * Handles an incoming message from a guild member to see if it's a command invocation.
+     * 
+     * This method checks if the message content starts with the configured command prefix for
+     * the guild, and if the message author is not a bot. If the message passes these checks, it
+     * then parses the command name and arguments from the message content, looks up the command
+     * in the `commands` map, and executes the command if it exists. If the command does not exist,
+     * or if there is an error while executing the command, the user is notified of the error.
+     * 
+     * @param message - The incoming message to handle.
+     */
     public handleMessage(message: Message): void {
-        // Get guild-specific prefix (falls back to .env if not set)
         const prefix = configHandler.getGuildSetting(message.guild, 'COMMAND_PREFIX', 'string');
 
-        // Ignore messages from bots or messages not starting with the prefix
         if (!message.content.startsWith(prefix) || message.author.bot) return;
 
-        // Parse command and arguments
         const args = message.content.slice(prefix.length).trim().split(/ +/);
         const commandName = args.shift()?.toLowerCase();
 
         if (!commandName) return;
 
-        // Find and execute the command (check both command name and aliases)
         const mainCommandName = this.aliases.get(commandName) || commandName;
         const command = this.commands.get(mainCommandName);
         if (command) {

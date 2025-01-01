@@ -6,13 +6,22 @@ export interface Song {
     Artist: string;
     Title: string;
     Thumbnail: string;
-    Filename: string | null; // null when not yet downloaded
+    Filename: string | null;
     Link: string;
     Track: string;
     ID: string;
     Duration: number;
 }
 
+    /**
+     * A class that handles the metadata of songs, such as the artist, title, and link.
+     * 
+     * The class is responsible for:
+     * - Initializing the cache directory and songs directory if they do not exist
+     * - Loading the songs database from the metadata file
+     * - Saving the songs database to the metadata file
+     * - Getting the metadata of a song from the database, or downloading it from YouTube if it does not exist
+     */
 export class MetaHandler {
     private static instance: MetaHandler;
     private songs: Map<string, Song>;
@@ -30,29 +39,40 @@ export class MetaHandler {
         return MetaHandler.instance;
     }
 
+        /**
+         * Initializes the cache directory, songs directory, and metadata file if they do not exist.
+         * 
+         * This method is called in the constructor of the MetaHandler class.
+         * The cache directory and songs directory are created if they do not exist.
+         * The metadata file is created if it does not exist, and an empty object is written to it as the initial contents.
+         */
     private initializeCache(): void {
-        // Check and create cache directory
         if (!fs.existsSync(configHandler.CACHE_DIR)) {
             fs.mkdirSync(configHandler.CACHE_DIR);
         }
 
-        // Check and create songs directory
         if (!fs.existsSync(configHandler.SONGS_DIR)) {
             fs.mkdirSync(configHandler.SONGS_DIR);
         }
 
-        // Check and create songs.json if it doesn't exist
         if (!fs.existsSync(configHandler.METADATA_FILE)) {
             fs.writeFileSync(configHandler.METADATA_FILE, JSON.stringify({}));
         }
     }
 
+        /**
+         * Loads the songs database from the metadata file.
+         * 
+         * This method is called in the constructor of the MetaHandler class.
+         * The method reads the contents of the metadata file, parses it as a JSON object,
+         * and creates a new Map from the object's entries.
+         * If the metadata file does not exist or could not be parsed, an empty Map is created instead.
+         */
     private loadSongsDatabase(): void {
         try {
             const data = fs.readFileSync(configHandler.METADATA_FILE, 'utf8');
             const songsObject = JSON.parse(data);
             
-            // Convert the plain object to Map
             this.songs = new Map(Object.entries(songsObject));
         } catch (error) {
             console.error('Error loading songs database:', error);
@@ -60,6 +80,12 @@ export class MetaHandler {
         }
     }
 
+        /**
+         * Saves the songs database to the metadata file.
+         * 
+         * This method converts the songs Map to an object, then writes it to the metadata file as a JSON string.
+         * If the write fails, an error is logged to the console.
+         */
     private saveSongsDatabase(): void {
         try {
             const songsObject = Object.fromEntries(this.songs);
@@ -69,8 +95,20 @@ export class MetaHandler {
         }
     }
 
+        /**
+         * Gets the metadata of a song from the provided link.
+         * 
+         * The method first checks if the song is in the cache, and if it is, it returns the cached metadata and a resolved promise.
+         * If the song is not in the cache, it downloads the metadata and adds it to the cache.
+         * The method returns an object containing the song metadata and a download promise.
+         * The download promise is resolved when the song has finished downloading.
+         * If the song is already in the cache, the download promise is resolved immediately.
+         * If the song metadata could not be fetched, the method returns null for the metadata and a rejected promise.
+         * 
+         * @param link The YouTube link of the song for which to get the metadata.
+         * @returns An object containing the song metadata and a download promise.
+         */
     public async getSongMetadata(link: string): Promise<{ metadata: Song | null, downloadPromise: Promise<boolean> }> {
-        // Check if song exists in database
         if (this.songs.has(link)) {
             return { 
                 metadata: this.songs.get(link) || null,
@@ -78,14 +116,11 @@ export class MetaHandler {
             };
         }
         
-        // If not found, request DownloadHandler to fetch metadata and download song
         const result = await downloadHandler.downloadSongAndMetadata(link);
         if (result.metadata) {
-            // Save metadata immediately for quick response
             this.songs.set(link, result.metadata);
             this.saveSongsDatabase();
 
-            // Update filename after download completes
             result.downloadPromise.then(() => {
                 if (result.metadata) {
                     this.songs.set(link, result.metadata);
