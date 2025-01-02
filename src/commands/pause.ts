@@ -20,7 +20,7 @@ export default {
             }
         } catch (error) {
             if (error instanceof Error) {
-                await messageHandler.replyToMessage(message, error.message, true);
+                await messageHandler.replyToMessage(message, error.message);
             }
         }
     }
