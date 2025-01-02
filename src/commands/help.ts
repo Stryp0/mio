@@ -35,5 +35,6 @@ export default {
         embed.setFooter({ text: `Use ${prefix} prefix before each command` });
 
         await messageHandler.replyToMessage(message, { embeds: [embed] });
+        messageHandler.deleteMessage(message);
     }
 }
