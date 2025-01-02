@@ -1,7 +1,6 @@
 import { Message } from 'discord.js';
 import { queueHandler } from '../handlers/QueueHandler';
-import { playbackHandler } from '../handlers/PlaybackHandler';
-import { configHandler } from '../handlers/ConfigHandler';
+import { messageHandler } from '../handlers/MessageHandler';
 
 function validateAndCleanYouTubeUrl(url: string): string | null {
     const pattern = /(?:https?:\/\/)?(?:www.)?youtu(?:be\.com|\.be)\/(?:watch\?v=)?(.+?)(?:(\?|&| ).+)?$/;
@@ -21,12 +20,12 @@ export default {
     altDescription: 'If playback is already ongoing, adds it to the end of the queue',
     execute: async (message: Message, args: string[]) => {
         if (!message.guild || !message.member) {
-            await message.reply('This command can only be used in a server!');
+            await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
             return;
         }
 
         if (args.length < 1) {
-            await message.reply('Please provide a YouTube link to play!');
+            await messageHandler.replyToMessage(message, 'Please provide a YouTube link to play!', true);
             return;
         }
 
@@ -34,37 +33,32 @@ export default {
         const cleanUrl = validateAndCleanYouTubeUrl(link);
 
         if (!cleanUrl) {
-            await message.reply('Please provide a valid YouTube URL!');
+            await messageHandler.replyToMessage(message, 'Please provide a valid YouTube URL!', true);
             return;
         }
 
         try {
-            const loadingMsg = await message.reply('Adding song to queue...');
+            const loadingMsg = await messageHandler.replyToMessage(message, 'Adding song to queue...');
             const result = await queueHandler.addLinkToQueue(message.guild, cleanUrl, message.author);
 
             if (!result.metadata) {
-                await loadingMsg.edit('Failed to add song to queue.');
+                await messageHandler.editReply(loadingMsg, 'Failed to add song to queue.', true);
                 return;
             }
 
             const queue = queueHandler.getQueue(message.guild);
             if (queue.length <= 1) {
-                await loadingMsg.edit(`**${result.metadata.Track}** added to queue and will start playing shortly!`);
+                await messageHandler.editReply(loadingMsg, `**${result.metadata.Track}** added to queue and will start playing shortly!`, true);
             } else {
                 const position = queue.length - 1;
-                await loadingMsg.edit(`**${result.metadata.Track}** added to queue at position ${position}!`);
+                await messageHandler.editReply(loadingMsg, `**${result.metadata.Track}** added to queue at position ${position}!`, true);
             }
 
-            // Wait for download to complete in the background
             result.downloadPromise.catch(error => {
                 console.error('Error downloading song:', error);
             });
         } catch (error) {
-            await message.reply('Sorry, the link seems to be invalid. If you are sure it is correct, please try again.');
-        }
-        // Delete the original message if configured to do so
-        if (configHandler.getGuildSetting(message.guild, 'DELETE_BOT_COMMANDS', 'boolean')) {
-            await message.delete();
+            await messageHandler.replyToMessage(message, 'Sorry, the link seems to be invalid. If you are sure it is correct, please try again.', true);
         }
     }
 }

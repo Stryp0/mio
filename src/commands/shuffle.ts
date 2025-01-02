@@ -1,21 +1,22 @@
 import { Message } from 'discord.js';
 import { queueHandler } from '../handlers/QueueHandler';
+import { messageHandler } from '../handlers/MessageHandler';
 
 export default {
     name: 'shuffle',
     description: 'Shuffles the songs in the queue',
     execute: async (message: Message) => {
         if (!message.guild) {
-            await message.reply('This command can only be used in a server!');
+            await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
             return;
         }
 
         try {
             queueHandler.shuffleQueue(message.guild);
-            await message.reply('Queue has been shuffled!');
+            await messageHandler.replyToMessage(message, 'Queue has been shuffled!', true);
         } catch (error) {
             if (error instanceof Error) {
-                await message.reply(error.message);
+                await messageHandler.replyToMessage(message, error.message, true);
             }
         }
     }

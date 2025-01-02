@@ -1,5 +1,6 @@
 import { Message } from 'discord.js';
 import { queueHandler } from '../handlers/QueueHandler';
+import { messageHandler } from '../handlers/MessageHandler';
 
 export default {
     name: 'clear',
@@ -7,16 +8,16 @@ export default {
     altDescription: 'Current song will finish playback',
     execute: async (message: Message) => {
         if (!message.guild) {
-            await message.reply('This command can only be used in a server!');
+            await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
             return;
         }
 
         try {
             queueHandler.clearQueueExceptCurrent(message.guild);
-            await message.reply('Queue cleared. Current song will finish playback.');
+            await messageHandler.replyToMessage(message, 'Queue cleared. Current song will finish playback.', true);
         } catch (error) {
             if (error instanceof Error) {
-                await message.reply(error.message);
+                await messageHandler.replyToMessage(message, error.message);
             }
         }
     }

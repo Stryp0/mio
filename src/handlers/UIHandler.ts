@@ -1,6 +1,7 @@
 import { TextChannel, EmbedBuilder, Guild, ActionRowBuilder, ButtonBuilder, ButtonStyle, ButtonInteraction } from 'discord.js';
 import { queueHandler, QueuedSong } from './QueueHandler';
 import { playbackHandler } from './PlaybackHandler';
+import { messageHandler } from '../handlers/MessageHandler';
 
 /**
  * UIHandler manages the user interface for the music queue system.
@@ -177,33 +178,32 @@ export class UIHandler {
             switch (interaction.customId) {
                 case 'skip':
                     playbackHandler.skipSong(interaction.guild);
-                    await interaction.reply({ content: 'Skipped the current song!', ephemeral: true });
+                    await messageHandler.replyToInteraction(interaction,{ content: 'Skipped the current song!'}, true);
                     break;
                 case 'shuffle':
                     queueHandler.shuffleQueue(interaction.guild);
-                    await interaction.reply({ content: 'Queue has been shuffled!', ephemeral: true });
+                    await messageHandler.replyToInteraction(interaction,{ content: 'Queue has been shuffled!'}, true);
                     break;
                 case 'pause':
                     const isPaused = playbackHandler.isGuildPlayerPaused(interaction.guild);
                     if (isPaused) {
                         playbackHandler.resumePlayback(interaction.guild);
-                        await interaction.reply({ content: 'Resumed playback!', ephemeral: true });
+                        await messageHandler.replyToInteraction(interaction,{ content: 'Resumed playback!'}, true);
                     } else {
                         playbackHandler.pausePlayback(interaction.guild);
-                        await interaction.reply({ content: 'Paused playback!', ephemeral: true });
+                        await messageHandler.replyToInteraction(interaction,{ content: 'Paused playback!'}, true);
                     }
                     await this.updateExistingMessage(interaction.guild);
                     break;
                 case 'stop':
                     playbackHandler.stopPlayback(interaction.guild);
-                    await interaction.reply({ content: 'Stopped playback and cleared the queue!', ephemeral: true });
+                    await messageHandler.replyToInteraction(interaction,{ content: 'Stopped playback and cleared the queue!'}, true);
                     break;
             }
         } catch (error) {
             console.error('Error handling button interaction:', error);
-            await interaction.reply({ 
-                content: 'There was an error while executing that action!', 
-                ephemeral: true 
+            await messageHandler.replyToInteraction(interaction,{ 
+                content: 'There was an error while executing that action!'
             });
         }
     }

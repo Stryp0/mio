@@ -3,6 +3,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { queueHandler } from '../handlers/QueueHandler';
 import { configHandler } from '../handlers/ConfigHandler';
+import { messageHandler } from '../handlers/MessageHandler';
 
 const execPromise = promisify(exec);
 
@@ -55,11 +56,11 @@ export default {
     arguments: '<search query>',
     description: 'Searches YouTube Music and YouTube for songs',
     async execute(message, args) {
-        if (!message.guild || !message.member) return message.reply('This command can only be used in a server!');
-        if (!args.length) return message.reply('Please provide a search query!');
+        if (!message.guild || !message.member) return messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
+        if (!args.length) return messageHandler.replyToMessage(message, 'Please provide a search query!', true);
 
         const query = args.join(' ');
-        const loadingMsg = await message.reply('🔎 Searching...');
+        const loadingMsg = await messageHandler.replyToMessage(message, '🔎 Searching...');
 
         try {
             const [ytMusicResults, youtubeResults] = await Promise.all([
@@ -68,7 +69,7 @@ export default {
             ]);
 
             if (!ytMusicResults.length && !youtubeResults.length) {
-                return loadingMsg.edit('No results found for your search query.');
+                return messageHandler.editReply(loadingMsg,'No results found for your search query.', true);
             }
 
             const mainEmbed = new EmbedBuilder()
@@ -142,11 +143,11 @@ export default {
                 components.push(selectRow);
             }
 
-            const response = await loadingMsg.edit({
+            const response = await messageHandler.editReply(loadingMsg,({
                 content: `Results for: **${query}**`,
                 embeds: [mainEmbed, ...imageEmbeds],
                 components: components
-            });
+            }));
 
             // Create collector for both buttons and select menu
             const collector = response.createMessageComponentCollector({
@@ -156,23 +157,21 @@ export default {
             collector.on('collect', async (interaction: ButtonInteraction | StringSelectMenuInteraction) => {
                 if (!interaction.guild) return;
                 if (interaction.user.id !== message.author.id) {
-                    await interaction.reply({
-                        content: 'Only the person who searched can use these controls!',
-                        ephemeral: true
-                    });
+                    await messageHandler.replyToInteraction(interaction,{
+                        content: 'Only the person who searched can use these controls!'
+                    }, true);
                     return;
                 } else {
-                    await interaction.reply({
-                        content: 'Adding song to queue...',
-                        ephemeral: true
+                    await messageHandler.replyToInteraction(interaction,{
+                        content: 'Adding song to queue...'
                     });
                 }
 
                 const member = interaction.member as GuildMember;
                 if (!member.voice.channel) {
-                    await interaction.editReply({
+                    await messageHandler.replyToInteraction(interaction,{
                         content: 'You need to be in a voice channel to use this command!'
-                    });
+                    }, true);
                     return;
                 }
 
@@ -196,24 +195,24 @@ export default {
                 );
 
                 if (result.metadata) {
-                    await interaction.editReply({
+                    await messageHandler.replyToInteraction(interaction,{
                         content: `Added **${selectedResult.title}** to the queue!`
-                    });
+                    }, true);
                 } else {
-                    await interaction.editReply({
+                    await messageHandler.replyToInteraction(interaction,{
                         content: 'Failed to add song to queue.'
-                    });
+                    }, true);
                 }
             });
 
             collector.on('end', () => {
                 if (response.editable) {
-                    response.edit({ components: [] }).catch(console.error);
+                    messageHandler.editReply(response,{ components: [] }).catch(console.error);
                 }
             });
         } catch (error) {
             console.error('Search error:', error);
-            await message.reply('Sorry, there was an error fetching search results. Please try again.');
+            await messageHandler.editReply(loadingMsg,'Sorry, there was an error fetching search results. Please try again.', true);
         }
     },
 };

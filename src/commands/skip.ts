@@ -1,21 +1,22 @@
 import { Message } from 'discord.js';
 import { playbackHandler } from '../handlers/PlaybackHandler';
+import { messageHandler } from '../handlers/MessageHandler';
 
 export default {
     name: 'skip',
     description: 'Skips the current song and plays the next one',
     execute: async (message: Message) => {
         if (!message.guild) {
-            await message.reply('This command can only be used in a server!');
+            await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
             return;
         }
 
         try {
             playbackHandler.skipSong(message.guild);
-            await message.reply('Skipping to next song...');
+            await messageHandler.replyToMessage(message, 'Skipping to next song...', true);
         } catch (error) {
             if (error instanceof Error) {
-                await message.reply(error.message);
+                await messageHandler.replyToMessage(message, error.message, true);
             }
         }
     }

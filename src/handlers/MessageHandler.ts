@@ -1,4 +1,4 @@
-import { Message, InteractionReplyOptions, CommandInteraction, MessageCreateOptions, MessageEditOptions } from 'discord.js';
+import { Message, InteractionReplyOptions, CommandInteraction, MessageCreateOptions, MessageEditOptions, ButtonInteraction, StringSelectMenuInteraction, BaseInteraction } from 'discord.js';
 import { configHandler } from './ConfigHandler';
 
     /**
@@ -27,7 +27,7 @@ export class MessageHandler {
      * @param isFinal - Indicates whether the reply should be auto-deleted after sending.
      */
     public async replyToInteraction(
-        interaction: CommandInteraction,
+        interaction: CommandInteraction | ButtonInteraction | StringSelectMenuInteraction,
         content: string | InteractionReplyOptions,
         isFinal: boolean = false
     ): Promise<void> {
@@ -80,27 +80,30 @@ export class MessageHandler {
             // Handle auto-deletion based on settings
             const deleteDelay = configHandler.getGuildSetting(message.guild!, 'DELETE_DELAY', 'number') * 1000;
             
-            // Delete bot reply if enabled
-            if (configHandler.getGuildSetting(message.guild!, 'DELETE_BOT_REPLIES', 'boolean')) {
-                setTimeout(async () => {
+            // Delete both messages after the delay if enabled
+            setTimeout(async () => {
+                // Delete user command first if enabled
+                if (configHandler.getGuildSetting(message.guild!, 'DELETE_USER_COMMANDS', 'boolean')) {
+                    try {
+                        // Get the message this is replying to
+                        const reference = await message.fetchReference().catch(() => null);
+                        if (reference) {
+                            await reference.delete();
+                        }
+                    } catch (error) {
+                        console.error('Failed to delete user command from reply:', error);
+                    }
+                }
+
+                // Delete bot reply if enabled
+                if (configHandler.getGuildSetting(message.guild!, 'DELETE_BOT_REPLIES', 'boolean')) {
                     try {
                         await reply.delete();
                     } catch (error) {
                         console.error('Failed to delete bot reply:', error);
                     }
-                }, deleteDelay);
-            }
-
-            // Delete user command if enabled
-            if (configHandler.getGuildSetting(message.guild!, 'DELETE_USER_COMMANDS', 'boolean')) {
-                setTimeout(async () => {
-                    try {
-                        await message.delete();
-                    } catch (error) {
-                        console.error('Failed to delete user command:', error);
-                    }
-                }, deleteDelay);
-            }
+                }
+            }, deleteDelay);
         }
 
         return reply;
@@ -129,19 +132,55 @@ export class MessageHandler {
             // Handle auto-deletion based on settings
             const deleteDelay = configHandler.getGuildSetting(message.guild!, 'DELETE_DELAY', 'number') * 1000;
             
-            // Delete bot reply if enabled
-            if (configHandler.getGuildSetting(message.guild!, 'DELETE_BOT_REPLIES', 'boolean')) {
-                setTimeout(async () => {
+            // Delete both messages after the delay if enabled
+            setTimeout(async () => {
+                // Delete user command first if enabled
+                if (configHandler.getGuildSetting(message.guild!, 'DELETE_USER_COMMANDS', 'boolean')) {
+                    try {
+                        // Get the message this is replying to
+                        const reference = await message.fetchReference().catch(() => null);
+                        if (reference) {
+                            await reference.delete();
+                        }
+                    } catch (error) {
+                        console.error('Failed to delete user command from edit:', error);
+                    }
+                }
+
+                // Delete bot reply if enabled
+                if (configHandler.getGuildSetting(message.guild!, 'DELETE_BOT_REPLIES', 'boolean')) {
                     try {
                         await editedMessage.delete();
                     } catch (error) {
-                        console.error('Failed to delete bot reply:', error);
+                        console.error('Failed to delete bot reply from edit:', error);
                     }
-                }, deleteDelay);
-            }
+                }
+            }, deleteDelay);
         }
 
         return editedMessage;
+    }
+
+    /**
+     * Deletes a message after the configured delay if message deletion is enabled.
+     * 
+     * @param message - The message to delete.
+     */
+    public async deleteMessage(message: Message): Promise<void> {
+        if (!message.guild) return;
+
+        // Only delete if the setting is enabled
+        if (configHandler.getGuildSetting(message.guild, 'DELETE_USER_COMMANDS', 'boolean')) {
+            const deleteDelay = configHandler.getGuildSetting(message.guild, 'DELETE_DELAY', 'number') * 1000;
+            
+            setTimeout(async () => {
+                try {
+                    await message.delete();
+                } catch (error) {
+                    console.error('Failed to delete message:', error);
+                }
+            }, deleteDelay);
+        }
     }
 }
 

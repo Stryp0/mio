@@ -2,6 +2,7 @@ import { Client, Message } from "discord.js";
 import fs from "fs";
 import path from "path";
 import { configHandler } from "./ConfigHandler";
+import { messageHandler } from '../handlers/MessageHandler';
 
 type Command = {
     name: string;
@@ -95,10 +96,10 @@ export class CommandHandler {
                 command.execute(message, args);
             } catch (error) {
                 console.error(`Error executing command ${mainCommandName}:`, error);
-                message.reply("There was an error while executing that command!");
+                messageHandler.replyToMessage(message, "There was an error while executing that command!", true);
             }
         } else {
-            message.reply("I don't recognize that command!");
+            messageHandler.replyToMessage(message, "I don't recognize that command!", true);
         }
     }
 

@@ -1,6 +1,7 @@
 import { Message } from 'discord.js';
 import { queueHandler } from '../handlers/QueueHandler';
 import { configHandler } from '../handlers/ConfigHandler';
+import { messageHandler } from '../handlers/MessageHandler';
 
 export default {
     name: 'remove',
@@ -9,39 +10,34 @@ export default {
     description: 'Removes a song from the queue',
     execute: async (message: Message, args: string[]) => {
         if (!message.guild) {
-            await message.reply('This command can only be used in a server!');
+            await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
             return;
         }
 
         if (args.length !== 1) {
-            await message.reply('Please provide the position of the song to remove (e.g., !remove 3).');
+            await messageHandler.replyToMessage(message, 'Please provide the position of the song to remove (e.g., !remove 3).', true);
             return;
         }
 
         const index = parseInt(args[0]);
 
         if (isNaN(index)) {
-            await message.reply('Please provide a valid number for the position.');
+            await messageHandler.replyToMessage(message, 'Please provide a valid number for the position.', true);
             return;
         }
 
         const queue = queueHandler.getQueue(message.guild);
         if (index <= 0 || index > queue.length) {
-            await message.reply(`Please provide a position between 1 and ${queue.length}!`);
+            await messageHandler.replyToMessage(message, `Please provide a position between 1 and ${queue.length}!`, true);
             return;
         }
 
         const removedSong = queueHandler.removeSong(message.guild, index);
         
         if (removedSong) {
-            await message.reply(`Removed **${removedSong.song.Track}** from the queue.`);
+            await messageHandler.replyToMessage(message, `Removed **${removedSong.song.Track}** from the queue.`, true);
         } else {
-            await message.reply('Failed to remove song. Please check that the position is valid.');
-        }
-
-        // Delete the original message if configured to do so
-        if (configHandler.getGuildSetting(message.guild, 'DELETE_BOT_COMMANDS', 'boolean')) {
-            await message.delete();
+            await messageHandler.replyToMessage(message, 'Failed to remove song. Please check that the position is valid.', true);
         }
     }
 }

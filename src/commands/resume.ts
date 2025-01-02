@@ -1,25 +1,26 @@
 import { Message } from 'discord.js';
 import { playbackHandler } from '../handlers/PlaybackHandler';
+import { messageHandler } from '../handlers/MessageHandler';
 
 export default {
     name: 'resume',
     description: 'Resumes the paused playback',
     execute: async (message: Message) => {
         if (!message.guild) {
-            await message.reply('This command can only be used in a server!');
+            await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
             return;
         }
 
         try {
             const resumed = playbackHandler.resumePlayback(message.guild);
             if (resumed) {
-                await message.reply('Playback resumed.');
+                await messageHandler.replyToMessage(message, 'Playback resumed.', true);
             } else {
-                await message.reply('Failed to resume playback. The player might not be paused.');
+                await messageHandler.replyToMessage(message, 'Failed to resume playback. The player might not be paused.', true);
             }
         } catch (error) {
             if (error instanceof Error) {
-                await message.reply(error.message);
+                await messageHandler.replyToMessage(message, error.message);
             }
         }
     }

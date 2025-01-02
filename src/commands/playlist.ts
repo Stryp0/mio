@@ -1,6 +1,6 @@
 import { Message } from 'discord.js';
 import { queueHandler } from '../handlers/QueueHandler';
-import { playbackHandler } from '../handlers/PlaybackHandler';
+import { messageHandler } from '../handlers/MessageHandler';
 import { configHandler } from '../handlers/ConfigHandler';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -39,12 +39,12 @@ export default {
     description: 'Adds all songs from a YouTube playlist to the queue',
     execute: async (message: Message, args: string[]) => {
         if (!message.guild || !message.member) {
-            await message.reply('This command can only be used in a server!');
+            await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
             return;
         }
 
         if (args.length < 1) {
-            await message.reply('Please provide a YouTube playlist link!');
+            await messageHandler.replyToMessage(message, 'Please provide a YouTube playlist link!', true);
             return;
         }
 
@@ -52,25 +52,23 @@ export default {
         const cleanUrl = validateAndCleanYouTubePlaylistUrl(link);
 
         if (!cleanUrl) {
-            await message.reply('Please provide a valid YouTube playlist URL!');
+            await messageHandler.replyToMessage(message, 'Please provide a valid YouTube playlist URL!', true);
             return;
         }
 
         try {
-            const loadingMsg = await message.reply('Fetching playlist videos...');
+            const loadingMsg = await messageHandler.replyToMessage(message, 'Fetching playlist videos...');
             const videoUrls = await getPlaylistVideos(cleanUrl);
 
             if (videoUrls.length === 0) {
-                await loadingMsg.edit('No videos found in the playlist.');
+                await messageHandler.editReply(loadingMsg,'No videos found in the playlist.', true);
                 return;
             }
 
-            await loadingMsg.edit(`Found ${videoUrls.length} videos. Adding to queue...`);
+            await messageHandler.editReply(loadingMsg,'Found ${videoUrls.length} videos. Adding to queue...');
             
             let addedCount = 0;
-            let firstSong = true;
 
-            // Process each video URL
             for (const videoUrl of videoUrls) {
                 try {
                     const result = await queueHandler.addLinkToQueue(message.guild, videoUrl, message.author);
@@ -87,15 +85,10 @@ export default {
                 }
             }
 
-            await loadingMsg.edit(`Successfully added ${addedCount} songs to the queue!`);
+            await messageHandler.editReply(loadingMsg,`Successfully added ${addedCount} songs to the queue!`, true);
 
         } catch (error) {
-            await message.reply('Sorry, there was an error processing the playlist. Please try again later.');
-        }
-
-        // Delete the original message if configured to do so
-        if (configHandler.getGuildSetting(message.guild, 'DELETE_BOT_COMMANDS', 'boolean')) {
-            await message.delete();
+            await messageHandler.replyToMessage(message, 'Sorry, there was an error processing the playlist. Please try again later.', true);
         }
     }
 }

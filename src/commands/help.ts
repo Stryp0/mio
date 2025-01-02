@@ -2,6 +2,7 @@ import { Message, EmbedBuilder } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
 import { configHandler } from '../handlers/ConfigHandler';
+import { messageHandler } from '../handlers/MessageHandler';
 
 export default {
     name: 'help',
@@ -9,7 +10,7 @@ export default {
     description: 'Shows all available commands and their usage',
     execute: async (message: Message) => {
         if (!message.guild) {
-            await message.reply('This command can only be used in a server!');
+            await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
             return;
         }
 
@@ -33,6 +34,6 @@ export default {
 
         embed.setFooter({ text: `Use ${prefix} prefix before each command` });
 
-        await message.reply({ embeds: [embed] });
+        await messageHandler.replyToMessage(message, { embeds: [embed] });
     }
 }
