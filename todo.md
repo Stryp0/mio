@@ -1,11 +1,8 @@
 # TODO
 - Per-server onboarding and configuration options
-- Migrate databases to MongoDB
+- Migrate song database to sqlite as well
 - Needs checks for all (playback only?) commands to force users to be in a voice channel
 - Automatically display queue with UIHandler if env setting (should probably be in sync with next todo item)
-- Consistent ephemeral messages (maybe config option?)
-- Correct implementation of "delete messages" setting
-- Make search respond instantly so the user knows what's happening
 - History handler, so we know what's been played
 - Handle if metadata has been downloaded, but somehow the file does not exist (or the Song's Filename parameter is null)
 - Downloaded song library management, like size, number of songs etc
