@@ -85,11 +85,7 @@ export class MessageHandler {
                 // Delete user command first if enabled
                 if (configHandler.getGuildSetting(message.guild!, 'DELETE_USER_COMMANDS', 'boolean')) {
                     try {
-                        // Get the message this is replying to
-                        const reference = await message.fetchReference().catch(() => null);
-                        if (reference) {
-                            await reference.delete();
-                        }
+                        await message.delete();
                     } catch (error) {
                         console.error('Failed to delete user command from reply:', error);
                     }
