@@ -222,17 +222,18 @@ export class PlaybackHandler {
         }
     }
 
+
+
     /**
      * Pauses the playback for the specified guild.
      *
      * @param guild The guild for which to pause playback.
      * @returns True if the player was successfully paused, false otherwise.
-     * @throws {Error} If no active player is found for the guild.
      */
     public pausePlayback(guild: Guild): boolean {
         const player = this.getPlayer(guild);
         if (!player) {
-            throw new Error('No active player found for this guild');
+            return false;
         }
 
         return player.pause();
@@ -243,12 +244,11 @@ export class PlaybackHandler {
      *
      * @param guild The guild for which to resume playback.
      * @returns True if the player was successfully resumed, false otherwise.
-     * @throws {Error} If no active player is found for the guild.
      */
     public resumePlayback(guild: Guild): boolean {
         const player = this.getPlayer(guild);
         if (!player) {
-            throw new Error('No active player found for this guild');
+            return false;
         }
 
         return player.unpause();
