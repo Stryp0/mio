@@ -158,6 +158,44 @@ export class MessageHandler {
     }
 
     /**
+     * Edits an interaction reply with new content and optionally handles auto-deletion.
+     * 
+     * @param interaction - The interaction whose reply should be edited
+     * @param content - The new content or options for the interaction edit
+     * @param isFinal - Indicates whether the reply should be auto-deleted after editing
+     */
+    public async editInteractionReply(
+        interaction: CommandInteraction | ButtonInteraction | StringSelectMenuInteraction,
+        content: string | InteractionReplyOptions,
+        isFinal: boolean = false
+    ): Promise<void> {
+        const options: InteractionReplyOptions = typeof content === 'string' 
+            ? { content } 
+            : content;
+
+        // If ephemeral is enabled in config, maintain it
+        if (configHandler.getGuildSetting(interaction.guild!, 'PRIVATE_BOT_REPLIES', 'boolean')) {
+            options.ephemeral = true;
+        }
+
+        await interaction.editReply(options);
+
+        // Auto-delete if enabled and message is not ephemeral and is final
+        if (isFinal && configHandler.getGuildSetting(interaction.guild!, 'DELETE_BOT_REPLIES', 'boolean') && !options.ephemeral) {
+            setTimeout(async () => {
+                try {
+                    if (interaction.replied) {
+                        const reply = await interaction.fetchReply();
+                        await reply.delete();
+                    }
+                } catch (error) {
+                    console.error('Failed to delete interaction reply:', error);
+                }
+            }, configHandler.getGuildSetting(interaction.guild!, 'DELETE_DELAY', 'number') * 1000);
+        }
+    }
+
+    /**
      * Deletes a message after the configured delay if message deletion is enabled.
      * 
      * @param message - The message to delete.

@@ -195,11 +195,11 @@ export default {
                 );
 
                 if (result.metadata) {
-                    await messageHandler.replyToInteraction(interaction,{
+                    await messageHandler.editInteractionReply(interaction, {
                         content: `Added **${selectedResult.title}** to the queue!`
                     }, true);
                 } else {
-                    await messageHandler.replyToInteraction(interaction,{
+                    await messageHandler.editInteractionReply(interaction, {
                         content: 'Failed to add song to queue.'
                     }, true);
                 }
