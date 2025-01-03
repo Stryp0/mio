@@ -1,12 +1,17 @@
-import { Client, Message } from "discord.js";
+import { Client, Message, GuildMember, VoiceChannel } from "discord.js";
 import fs from "fs";
 import path from "path";
 import { configHandler } from "./ConfigHandler";
 import { messageHandler } from '../handlers/MessageHandler';
 
+type CommandRequirements = {
+    voiceChannel?: boolean;
+};
+
 type Command = {
     name: string;
     aliases?: string[];
+    requirements?: CommandRequirements;
     execute: (message: Message, args: string[]) => void;
 };
 
@@ -69,6 +74,27 @@ export class CommandHandler {
     }
 
     /**
+     * Checks if a message meets all the requirements for a command
+     * 
+     * @param message - The message to check requirements for
+     * @param command - The command to check requirements against
+     * @returns A tuple of [boolean, string] where the boolean indicates if requirements are met
+     *          and the string contains an error message if they are not
+     */
+    private checkRequirements(message: Message, command: Command): [boolean, string] {
+        if (!command.requirements) return [true, ''];
+
+        if (command.requirements.voiceChannel) {
+            const member = message.member;
+            if (!member?.voice.channel) {
+                return [false, 'You must be in a voice channel to use this command!'];
+            }
+        }
+
+        return [true, ''];
+    }
+
+    /**
      * Handles an incoming message from a guild member to see if it's a command invocation.
      * 
      * This method checks if the message content starts with the configured command prefix for
@@ -91,8 +117,15 @@ export class CommandHandler {
 
         const mainCommandName = this.aliases.get(commandName) || commandName;
         const command = this.commands.get(mainCommandName);
+        
         if (command) {
             try {
+                const [requirementsMet, errorMessage] = this.checkRequirements(message, command);
+                if (!requirementsMet) {
+                    messageHandler.replyToMessage(message, errorMessage, true);
+                    return;
+                }
+
                 command.execute(message, args);
             } catch (error) {
                 console.error(`Error executing command ${mainCommandName}:`, error);

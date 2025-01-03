@@ -9,6 +9,9 @@ export default {
     arguments: '<current position> <target position>',
     description: 'Moves a song to a different position in the queue',
     altDescription: 'All other songs will descend in position',
+    requirements: {
+        voiceChannel: true
+    },
     execute: async (message: Message, args: string[]) => {
         if (!message.guild) {
             await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);

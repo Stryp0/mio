@@ -8,6 +8,9 @@ export default {
     aliases: ['rm', 'delete', 'del', 'delete'],
     arguments: '<position>',
     description: 'Removes a song from the queue',
+    requirements: {
+        voiceChannel: true
+    },
     execute: async (message: Message, args: string[]) => {
         if (!message.guild) {
             await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);

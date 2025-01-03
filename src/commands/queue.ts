@@ -8,6 +8,9 @@ export default {
     aliases: ['np', 'nowplaying', 'q'],
     description: 'Displays the currently playing song and queue',
     altDescription: 'This message will auto-update, and has useful buttons to control playback',
+    requirements: {
+        voiceChannel: true
+    },
     execute: async (message: Message) => {
         if (!message.guild) {
             await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);

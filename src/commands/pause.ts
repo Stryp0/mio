@@ -5,6 +5,9 @@ import { messageHandler } from '../handlers/MessageHandler';
 export default {
     name: 'pause',
     description: 'Pauses the playback',
+    requirements: {
+        voiceChannel: true
+    },
     execute: async (message: Message) => {
         if (!message.guild) {
             await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
