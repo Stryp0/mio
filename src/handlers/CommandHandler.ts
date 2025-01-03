@@ -137,7 +137,9 @@ export class CommandHandler {
                 messageHandler.replyToMessage(message, "There was an error while executing that command!", true);
             }
         } else {
-            messageHandler.replyToMessage(message, "I don't recognize that command!", true);
+            if( configHandler.getGuildSetting(message.guild, 'REPLY_TO_UNKNOWN_COMMANDS', 'boolean')) {
+                messageHandler.replyToMessage(message, "I don't recognize that command!", true);
+            }
         }
     }
 
