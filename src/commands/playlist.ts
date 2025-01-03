@@ -65,7 +65,7 @@ export default {
                 return;
             }
 
-            await messageHandler.editReply(loadingMsg,'Found ${videoUrls.length} videos. Adding to queue...');
+            await messageHandler.editReply(loadingMsg,`Found ${videoUrls.length} videos. Adding to queue...`, true);
             
             let addedCount = 0;
 

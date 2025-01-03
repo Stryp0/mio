@@ -53,13 +53,13 @@ export default {
                 const success = queueHandler.moveSong(message.guild, queue.length - 1, 1);
 
                 if (success) {
-                    await messageHandler.editReply(loadingMsg,'**${result.metadata.Track}** will play next!', true);
+                    await messageHandler.editReply(loadingMsg,`**${result.metadata.Track}** will play next!`, true);
                 } else {
                     // This should literally never happen
-                    await messageHandler.editReply(loadingMsg,'**${result.metadata.Track}** added to queue, but couldn\'t move it to play next.', true);
+                    await messageHandler.editReply(loadingMsg,`**${result.metadata.Track}** added to queue, but couldn\'t move it to play next.`, true);
                 }
             } else {
-                await messageHandler.editReply(loadingMsg,'**${result.metadata.Track}** will play next!', true);
+                await messageHandler.editReply(loadingMsg,`**${result.metadata.Track}** will play next!`, true);
             }
 
             // Wait for download to complete in the background
