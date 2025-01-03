@@ -10,13 +10,10 @@ export default {
     description: 'Moves a song to a different position in the queue',
     altDescription: 'All other songs will descend in position',
     requirements: {
-        voiceChannel: true
+        userInVoiceChannel: true,
+        messageSentInGuild: true
     },
     execute: async (message: Message, args: string[]) => {
-        if (!message.guild) {
-            await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
-            return;
-        }
 
         if (args.length !== 2) {
             await messageHandler.replyToMessage(message, `Please provide both the current position and the target position (e.g., ${configHandler.getGuildSetting(message.guild, 'COMMAND_PREFIX', 'string')}move 3 1).`, true);

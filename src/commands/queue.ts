@@ -9,26 +9,19 @@ export default {
     description: 'Displays the currently playing song and queue',
     altDescription: 'This message will auto-update, and has useful buttons to control playback',
     requirements: {
-        voiceChannel: true
+        userInVoiceChannel: true,
+        messageSentInGuild: true
     },
     execute: async (message: Message) => {
-        if (!message.guild) {
-            await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
-            return;
-        }
-
-        if (!(message.channel instanceof TextChannel)) {
-            await messageHandler.replyToMessage(message, 'This command can only be used in text channels!', true);
-            return;
-        }
-
         try {
             const currentSong = queueHandler.getCurrentQueueItem(message.guild);
             if (!currentSong) {
                 await messageHandler.replyToMessage(message, 'There is nothing playing!', true);
             } else {
-                await uiHandler.displayQueue(message.channel, message.guild);
-                await messageHandler.deleteMessage(message);
+                if (message.channel instanceof TextChannel) {
+                    await uiHandler.displayQueue(message.channel, message.guild);
+                    await messageHandler.deleteMessage(message);
+                }
             }
         } catch (error) {
             if (error instanceof Error) {

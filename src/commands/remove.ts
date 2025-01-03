@@ -1,6 +1,5 @@
 import { Message } from 'discord.js';
 import { queueHandler } from '../handlers/QueueHandler';
-import { configHandler } from '../handlers/ConfigHandler';
 import { messageHandler } from '../handlers/MessageHandler';
 
 export default {
@@ -9,13 +8,10 @@ export default {
     arguments: '<position>',
     description: 'Removes a song from the queue',
     requirements: {
-        voiceChannel: true
+        userInVoiceChannel: true,
+        messageSentInGuild: true
     },
     execute: async (message: Message, args: string[]) => {
-        if (!message.guild) {
-            await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
-            return;
-        }
 
         if (args.length !== 1) {
             await messageHandler.replyToMessage(message, 'Please provide the position of the song to remove (e.g., !remove 3).', true);
@@ -43,4 +39,4 @@ export default {
             await messageHandler.replyToMessage(message, 'Failed to remove song. Please check that the position is valid.', true);
         }
     }
-}
+};

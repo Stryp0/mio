@@ -5,7 +5,8 @@ import { configHandler } from "./ConfigHandler";
 import { messageHandler } from '../handlers/MessageHandler';
 
 type CommandRequirements = {
-    voiceChannel?: boolean;
+    userInVoiceChannel?: boolean;
+    messageSentInGuild?: boolean;
 };
 
 type Command = {
@@ -84,7 +85,11 @@ export class CommandHandler {
     private checkRequirements(message: Message, command: Command): [boolean, string] {
         if (!command.requirements) return [true, ''];
 
-        if (command.requirements.voiceChannel) {
+        if (command.requirements.messageSentInGuild && !message.guild) {
+            return [false, 'This command can only be used in a server!'];
+        }
+
+        if (command.requirements.userInVoiceChannel) {
             const member = message.member;
             if (!member?.voice.channel) {
                 return [false, 'You must be in a voice channel to use this command!'];

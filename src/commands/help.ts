@@ -8,12 +8,10 @@ export default {
     name: 'help',
     aliases: ['h', 'commands', 'cmds'],
     description: 'Shows all available commands and their usage',
+    requirements: {
+        messageSentInGuild: true
+    },
     execute: async (message: Message) => {
-        if (!message.guild) {
-            await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
-            return;
-        }
-
         const commandsPath = path.join(__dirname);
         const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.ts'));
 

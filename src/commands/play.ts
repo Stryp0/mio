@@ -19,14 +19,10 @@ export default {
     description: 'Plays a song from a YouTube link',
     altDescription: 'If playback is already ongoing, adds it to the end of the queue',
     requirements: {
-        voiceChannel: true
+        userInVoiceChannel: true,
+        messageSentInGuild: true
     },
     execute: async (message: Message, args: string[]) => {
-        if (!message.guild || !message.member) {
-            await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
-            return;
-        }
-
         if (args.length < 1) {
             await messageHandler.replyToMessage(message, 'Please provide a YouTube link to play!', true);
             return;

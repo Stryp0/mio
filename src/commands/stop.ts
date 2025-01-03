@@ -6,14 +6,10 @@ export default {
     name: 'stop',
     description: 'Stops playback and clears the queue',
     requirements: {
-        voiceChannel: true
+        userInVoiceChannel: true,
+        messageSentInGuild: true
     },
     execute: async (message: Message) => {
-        if (!message.guild) {
-            await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
-            return;
-        }
-
         try {
             playbackHandler.stopPlayback(message.guild);
             await messageHandler.replyToMessage(message, 'Playback stopped and queue cleared.', true);
@@ -23,4 +19,4 @@ export default {
             }
         }
     }
-}
+};

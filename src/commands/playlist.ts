@@ -38,14 +38,10 @@ export default {
     aliases: ['pl', 'list', 'l'],
     description: 'Adds all songs from a YouTube playlist to the queue',
     requirements: {
-        voiceChannel: true
+        userInVoiceChannel: true,
+        messageSentInGuild: true
     },
     execute: async (message: Message, args: string[]) => {
-        if (!message.guild || !message.member) {
-            await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
-            return;
-        }
-
         if (args.length < 1) {
             await messageHandler.replyToMessage(message, 'Please provide a YouTube playlist link!', true);
             return;

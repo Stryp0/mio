@@ -6,14 +6,10 @@ export default {
     name: 'pause',
     description: 'Pauses the playback',
     requirements: {
-        voiceChannel: true
+        userInVoiceChannel: true,
+        messageSentInGuild: true
     },
     execute: async (message: Message) => {
-        if (!message.guild) {
-            await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
-            return;
-        }
-
         try {
             const paused = playbackHandler.pausePlayback(message.guild);
             if (paused) {

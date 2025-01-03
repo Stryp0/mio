@@ -6,14 +6,10 @@ export default {
     name: 'shuffle',
     description: 'Shuffles the songs in the queue',
     requirements: {
-        voiceChannel: true
+        userInVoiceChannel: true,
+        messageSentInGuild: true
     },
     execute: async (message: Message) => {
-        if (!message.guild) {
-            await messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
-            return;
-        }
-
         try {
             queueHandler.shuffleQueue(message.guild);
             await messageHandler.replyToMessage(message, 'Queue has been shuffled!', true);
@@ -23,4 +19,4 @@ export default {
             }
         }
     }
-}
+};

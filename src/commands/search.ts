@@ -56,10 +56,10 @@ export default {
     arguments: '<search query>',
     description: 'Searches YouTube Music and YouTube for songs',
     requirements: {
-        voiceChannel: true
+        userInVoiceChannel: true,
+        messageSentInGuild: true
     },
     async execute(message, args) {
-        if (!message.guild || !message.member) return messageHandler.replyToMessage(message, 'This command can only be used in a server!', true);
         if (!args.length) return messageHandler.replyToMessage(message, 'Please provide a search query!', true);
 
         const query = args.join(' ');
