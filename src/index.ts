@@ -60,6 +60,38 @@ process.on('unhandledRejection', (error) => {
     console.error('Unhandled promise rejection:', error);
 });
 
+// Graceful shutdown handler
+const handleGracefulShutdown = async (signal: string) => {
+    console.log(`\n${signal} signal received. Starting graceful shutdown...`);
+    
+    try {
+        // Set bot status to "invisible" before disconnecting
+        await client.user?.setStatus('invisible');
+        console.log('Bot status set to invisible');
+        
+        // Clean up all voice connections
+        const { playbackHandler } = require('./handlers/PlaybackHandler');
+        const cleanupCount = playbackHandler.cleanupAllConnections();
+        console.log(`Cleaned up ${cleanupCount} voice connections`);
+        
+        // Destroy the client connection
+        console.log('Destroying Discord client connection...');
+        await client.destroy();
+        console.log('Discord client connection destroyed successfully');
+        
+        // Exit process with success code
+        console.log('Shutdown complete. Exiting process...');
+        process.exit(0);
+    } catch (error) {
+        console.error('Error during graceful shutdown:', error);
+        process.exit(1);
+    }
+};
+
+// Register shutdown handlers
+process.on('SIGINT', () => handleGracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => handleGracefulShutdown('SIGTERM'));
+
 // Verifying environment variables
 const token = configHandler.DISCORD_TOKEN;
 

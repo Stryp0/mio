@@ -89,6 +89,10 @@ export class ConfigHandler {
         return this.getEnvOrThrow('CLIENT_ID');
     }
 
+    public get YOUTUBE_API_KEY(): string {
+        return this.getEnvOrThrow('YOUTUBE_API_KEY');
+    }
+
     public get CACHE_DIR(): string {
         return this.getEnvOrThrow('CACHE_DIR');
     }

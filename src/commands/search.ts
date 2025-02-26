@@ -1,39 +1,72 @@
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonInteraction, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, StringSelectMenuInteraction, GuildMember } from 'discord.js';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { queueHandler } from '../handlers/QueueHandler';
+import { google, youtube_v3 } from 'googleapis';
 import { configHandler } from '../handlers/ConfigHandler';
 import { messageHandler } from '../handlers/MessageHandler';
+import { queueHandler } from '../handlers/QueueHandler';
 
-const execPromise = promisify(exec);
-
-async function searchYouTube(query, limit, isMusic = false) {
-    const baseCmd = isMusic
-        ? `yt-dlp --print title --print id --print duration --print uploader --print thumbnail --playlist-end ${limit} --default-search "https://music.youtube.com/search?q=" "${query}"`
-        : `yt-dlp --print title --print id --print duration --print uploader --print thumbnail "ytsearch${limit}:${query}"`;
+async function searchYouTube(query: string, limit: number) {
     try {
-        const { stdout } = await execPromise(baseCmd, { 
-            encoding: 'utf8',
-            env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+        const youtube = google.youtube({
+            version: 'v3',
+            auth: configHandler.YOUTUBE_API_KEY
         });
-        return stdout.split('\n').filter(Boolean).reduce((results, line, index) => {
-            if (index % 5 === 0 && results.length < limit) {
-                const title = line;
-                const uploader = stdout.split('\n')[index + 3] || 'Unknown';
-                results.push({
-                    title: title,
-                    url: `https://www.youtube.com/watch?v=${stdout.split('\n')[index + 1]}`,
-                    duration: parseInt(stdout.split('\n')[index + 2]) || 0,
-                    uploader: uploader,
-                    thumbnail: stdout.split('\n')[index + 4] || '',
-                });
-            }
-            return results;
-        }, []);
+
+        // Set the search parameters
+        const searchParams: youtube_v3.Params$Resource$Search$List = {
+            part: ['snippet'],
+            q: query,
+            maxResults: limit,
+            type: ['video'],
+        };
+
+        // Execute the search
+        const searchResponse = await youtube.search.list(searchParams);
+        
+        if (!searchResponse.data.items || searchResponse.data.items.length === 0) {
+            return [];
+        }
+
+        // Get video details for duration
+        const videoIds = searchResponse.data.items.map(item => item.id?.videoId).filter(Boolean) as string[];
+        const videoDetailsResponse = await youtube.videos.list({
+            part: ['contentDetails', 'snippet', 'statistics'],
+            id: videoIds
+        });
+
+        if (!videoDetailsResponse.data.items) {
+            return [];
+        }
+
+        // Map the results to our format
+        return videoDetailsResponse.data.items.map(video => {
+            // Parse duration from ISO 8601 format
+            const duration = video.contentDetails?.duration || 'PT0S';
+            const seconds = parseDuration(duration);
+            
+            return {
+                title: video.snippet?.title || 'Unknown Title',
+                url: `https://www.youtube.com/watch?v=${video.id}`,
+                duration: seconds,
+                uploader: video.snippet?.channelTitle || 'Unknown',
+                thumbnail: video.snippet?.thumbnails?.high?.url || video.snippet?.thumbnails?.default?.url || '',
+            };
+        });
     } catch (error) {
         console.error('Error fetching YouTube results:', error);
         return [];
     }
+}
+
+// Helper function to parse ISO 8601 duration to seconds
+function parseDuration(duration: string): number {
+    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    if (!match) return 0;
+    
+    const hours = parseInt(match[1] || '0', 10);
+    const minutes = parseInt(match[2] || '0', 10);
+    const seconds = parseInt(match[3] || '0', 10);
+    
+    return hours * 3600 + minutes * 60 + seconds;
 }
 
 function formatDuration(seconds) {
@@ -66,12 +99,9 @@ export default {
         const loadingMsg = await messageHandler.replyToMessage(message, '🔎 Searching...');
 
         try {
-            const [ytMusicResults, youtubeResults] = await Promise.all([
-                searchYouTube(query, 2, true),
-                searchYouTube(query, 2, false),
-            ]);
+            const results = await searchYouTube(query, 4);
 
-            if (!ytMusicResults.length && !youtubeResults.length) {
+            if (!results.length) {
                 return messageHandler.editReply(loadingMsg,'No results found for your search query.', true);
             }
 
@@ -81,9 +111,8 @@ export default {
                 .setDescription(`Results for: ${query}`)
                 .setURL(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`);
 
-            const allResults = [...ytMusicResults, ...youtubeResults];
             const emojis = ['🟦', '⬛', '🟩', '🟥'];
-            allResults.forEach((result, index) => {
+            results.forEach((result, index) => {
                 mainEmbed.addFields({
                     name: `${emojis[index] || '▫️'} ${index + 1}. ${sanitizeTitle(result.title, result.uploader)}`,
                     value: `[By: ${result.uploader} (${formatDuration(result.duration)})](${result.url})`,
@@ -95,16 +124,16 @@ export default {
                 }
             });
 
-            if (allResults.length > 1) {
+            if (results.length > 1) {
                 const thumbnailUrls = {
                     2: 'https://pic.surf/yne',
                     3: 'https://pic.surf/rjk',
                     4: 'https://pic.surf/cwv'
                 };
-                mainEmbed.setThumbnail(thumbnailUrls[allResults.length]);
+                mainEmbed.setThumbnail(thumbnailUrls[results.length]);
             }
 
-            const imageEmbeds = allResults.map(result =>
+            const imageEmbeds = results.map(result =>
                 new EmbedBuilder().setURL('https://music.youtube.com').setImage(result.thumbnail)
             );
 
@@ -119,7 +148,7 @@ export default {
             if (!useSelectMenu) {
                 const buttonRow = new ActionRowBuilder<ButtonBuilder>()
                     .addComponents(
-                        ...allResults.map((result, index) =>
+                        ...results.map((result, index) =>
                             new ButtonBuilder()
                                 .setCustomId(`play_${index}_${message.author.id}`)
                                 .setLabel(`Play ${index + 1}`)
@@ -134,7 +163,7 @@ export default {
                     .setCustomId(`select_${message.author.id}`)
                     .setPlaceholder('Select a song to play')
                     .addOptions(
-                        allResults.map((result, index) =>
+                        results.map((result, index) =>
                             new StringSelectMenuOptionBuilder()
                                 .setLabel(`${emojis[index] || '▫️'}${index + 1}. ${sanitizeTitle(result.title, result.uploader)}`)
                                 .setDescription(`By: ${result.uploader} (${formatDuration(result.duration)})`)
@@ -145,7 +174,7 @@ export default {
                 const selectRow = new ActionRowBuilder().addComponents(select);
                 components.push(selectRow);
             }
-
+                
             const response = await messageHandler.editReply(loadingMsg,({
                 content: `Results for: **${query}**`,
                 embeds: [mainEmbed, ...imageEmbeds],
@@ -189,7 +218,7 @@ export default {
                     return;
                 }
 
-                const selectedResult = allResults[selectedIndex];
+                const selectedResult = results[selectedIndex];
                 if (!selectedResult) return;
                 const result = await queueHandler.addLinkToQueue(
                     interaction.guild,

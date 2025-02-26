@@ -323,6 +323,39 @@ export class PlaybackHandler {
         }
         return null;
     }
+
+    /**
+     * Cleans up all voice connections and players across all guilds.
+     * This is primarily used during bot shutdown to ensure all resources are properly released.
+     * 
+     * @returns The number of connections that were cleaned up
+     */
+    public cleanupAllConnections(): number {
+        let cleanupCount = 0;
+        
+        // Stop all players
+        this.players.forEach((player, guildId) => {
+            try {
+                player.stop();
+                this.players.delete(guildId);
+                cleanupCount++;
+            } catch (error) {
+                console.error(`Error stopping player for guild ${guildId}:`, error);
+            }
+        });
+        
+        // Disconnect all voice connections
+        this.connections.forEach((connection, guildId) => {
+            try {
+                connection.disconnect();
+                this.connections.delete(guildId);
+            } catch (error) {
+                console.error(`Error disconnecting from guild ${guildId}:`, error);
+            }
+        });
+        
+        return cleanupCount;
+    }
 }
 
 export const playbackHandler = PlaybackHandler.getInstance();
