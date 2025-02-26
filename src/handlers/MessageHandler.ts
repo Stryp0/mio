@@ -1,4 +1,4 @@
-import { Message, InteractionReplyOptions, CommandInteraction, MessageCreateOptions, MessageEditOptions, ButtonInteraction, StringSelectMenuInteraction, BaseInteraction } from 'discord.js';
+import { Message, InteractionReplyOptions, CommandInteraction, MessageCreateOptions, MessageEditOptions, ButtonInteraction, StringSelectMenuInteraction, BaseInteraction, InteractionEditReplyOptions, MessageFlags } from 'discord.js';
 import { configHandler } from './ConfigHandler';
 
     /**
@@ -166,22 +166,29 @@ export class MessageHandler {
      */
     public async editInteractionReply(
         interaction: CommandInteraction | ButtonInteraction | StringSelectMenuInteraction,
-        content: string | InteractionReplyOptions,
+        content: string | InteractionEditReplyOptions,
         isFinal: boolean = false
     ): Promise<void> {
-        const options: InteractionReplyOptions = typeof content === 'string' 
+        const options: InteractionEditReplyOptions = typeof content === 'string' 
             ? { content } 
             : content;
 
-        // If ephemeral is enabled in config, maintain it
-        if (configHandler.getGuildSetting(interaction.guild!, 'PRIVATE_BOT_REPLIES', 'boolean')) {
-            options.ephemeral = true;
+        // Check if the message is ephemeral by fetching the reply
+        let isEphemeral = false;
+        try {
+            if (interaction.replied) {
+                const reply = await interaction.fetchReply();
+                // Check if the message has the Ephemeral flag
+                isEphemeral = reply.flags.has(MessageFlags.Ephemeral);
+            }
+        } catch (error) {
+            console.error('Error checking ephemeral status:', error);
         }
 
         await interaction.editReply(options);
 
         // Auto-delete if enabled and message is not ephemeral and is final
-        if (isFinal && configHandler.getGuildSetting(interaction.guild!, 'DELETE_BOT_REPLIES', 'boolean') && !options.ephemeral) {
+        if (isFinal && configHandler.getGuildSetting(interaction.guild!, 'DELETE_BOT_REPLIES', 'boolean') && !isEphemeral) {
             setTimeout(async () => {
                 try {
                     if (interaction.replied) {
