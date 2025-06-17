@@ -30,7 +30,7 @@ export default {
 
         const queue = queueHandler.getQueue(message.guild);
         if (fromIndex <= 0 || toIndex <= 0 || fromIndex > queue.length || toIndex > queue.length) {
-            await messageHandler.replyToMessage(message, `Please provide positions between 1 and ${queue.length}!`, true);
+            await messageHandler.replyToMessage(message, `Please provide positions between 1 and ${queue.length - 1}!`, true);
             return;
         }
 

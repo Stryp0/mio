@@ -227,9 +227,17 @@ export default {
                 );
 
                 if (result.metadata) {
-                    await messageHandler.editInteractionReply(interaction, {
-                        content: `Added **${selectedResult.title}** to the queue!`
-                    }, true);
+                    const queue = queueHandler.getQueue(interaction.guild);
+                    if (queue.length <= 1) {
+                        await messageHandler.editInteractionReply(interaction, {
+                            content: `Added **${selectedResult.title}** to queue and will start playing shortly!`
+                        }, true);
+                    } else {
+                        const position = queue.findIndex(item => item.song.Link === selectedResult.url);
+                        await messageHandler.editInteractionReply(interaction, {
+                            content: `Added **${selectedResult.title}** to queue at position ${position}!`
+                        }, true);
+                    }
                 } else {
                     await messageHandler.editInteractionReply(interaction, {
                         content: 'Failed to add song to queue.'

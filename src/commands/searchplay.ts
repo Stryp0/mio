@@ -92,7 +92,7 @@ export default {
                 // The queue is 0-indexed, so findIndex will give the correct index.
                 // We display position as index + 1 for user-friendliness.
                 const position = queue.findIndex(item => item.song.Link === url); 
-                await messageHandler.editReply(loadingMsg, `**${queueAddResult.metadata.Track}** added to queue at position ${position + 1}!`, true);
+                await messageHandler.editReply(loadingMsg, `**${queueAddResult.metadata.Track}** added to queue at position ${position}!`, true);
             }
 
             // The downloadPromise is handled by queueHandler/playbackHandler, no need to await here
