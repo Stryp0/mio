@@ -57,6 +57,15 @@ export default {
             return messageHandler.replyToMessage(message, 'Please provide a search query!', true);
         }
 
+        let desiredPosition: number | null = null;
+        if (args.length >= 2) {
+            const maybeNumber = parseInt(args[args.length - 1]);
+            if (!isNaN(maybeNumber) && maybeNumber > 0) {
+                desiredPosition = maybeNumber;
+                args = args.slice(0, -1);
+            }
+        }
+
         const query = args.join(' ');
         const loadingMsg = await messageHandler.replyToMessage(message, `🔎 Searching YouTube Music for "${query}"...`);
 
@@ -67,7 +76,6 @@ export default {
                 return messageHandler.editReply(loadingMsg, 'No music results found for your query.', true);
             }
 
-            // Ensure message.guild and message.member are not null
             if (!message.guild || !message.member) {
                 console.error('Guild or member is null in searchplay command.');
                 return messageHandler.editReply(loadingMsg, 'An error occurred: Could not identify server or user.', true);
@@ -84,21 +92,25 @@ export default {
             }
 
             const queue = queueHandler.getQueue(message.guild);
-            // If the queue length is 1, it means this song is the first and will start playing.
-            // The queueHandler.addLinkToQueue already handles starting playback if it's the first song.
+
+            if (desiredPosition !== null && desiredPosition < queue.length - 1) {
+                const fromIndex = queue.length - 1;
+                const toIndex = desiredPosition;
+                const moved = queueHandler.moveSong(message.guild, fromIndex, toIndex);
+                if (moved) {
+                    await messageHandler.editReply(loadingMsg, `**${queueAddResult.metadata.Track}** added to queue and moved to position ${desiredPosition}!`, true);
+                    return;
+                }
+            }
             if (queue.length <= 1) { 
                 await messageHandler.editReply(loadingMsg, `**${queueAddResult.metadata.Track}** added to queue and will start playing shortly!`, true);
             } else {
-                // The queue is 0-indexed, so findIndex will give the correct index.
-                // We display position as index + 1 for user-friendliness.
                 const position = queue.findIndex(item => item.song.Link === url); 
                 await messageHandler.editReply(loadingMsg, `**${queueAddResult.metadata.Track}** added to queue at position ${position}!`, true);
             }
 
-            // The downloadPromise is handled by queueHandler/playbackHandler, no need to await here
             queueAddResult.downloadPromise?.catch(error => {
                 console.error('Error downloading song in searchplay:', error);
-                // Optionally, notify the user if download fails, though this might be handled globally or by PlaybackHandler
             });
 
         } catch (error) {

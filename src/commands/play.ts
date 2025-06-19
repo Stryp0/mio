@@ -28,7 +28,14 @@ export default {
             return;
         }
 
-        const link = args[0];
+            const link = args[0];
+            let desiredPosition: number | null = null;
+            if (args.length >= 2) {
+                const maybeNumber = parseInt(args[1]);
+                if (!isNaN(maybeNumber) && maybeNumber > 0) {
+                    desiredPosition = maybeNumber;
+                }
+            }
         const cleanUrl = validateAndCleanYouTubeUrl(link);
 
         if (!cleanUrl) {
@@ -46,6 +53,17 @@ export default {
             }
 
             const queue = queueHandler.getQueue(message.guild);
+
+            if (desiredPosition !== null && desiredPosition < queue.length - 1) {
+                const fromIndex = queue.length - 1;
+                const toIndex = desiredPosition;
+
+                const moved = queueHandler.moveSong(message.guild, fromIndex, toIndex);
+                if (moved) {
+                    await messageHandler.editReply(loadingMsg, `**${result.metadata.Track}** added to queue and moved to position ${desiredPosition}!`, true);
+                    return;
+                }
+            }
             if (queue.length <= 1) {
                 await messageHandler.editReply(loadingMsg, `**${result.metadata.Track}** added to queue and will start playing shortly!`, true);
             } else {
