@@ -13,11 +13,10 @@ async function searchYouTubeMusic(query: string): Promise<{ url: string; title: 
 
         const searchParams: youtube_v3.Params$Resource$Search$List = {
             part: ['snippet'],
-            q: query,
+            q: query + " audio",
             maxResults: 1,
             type: ['video'],
-            videoCategoryId: '10', // Category ID for Music
-            regionCode: 'US' // Optional: helps in getting relevant categories if needed elsewhere, but good for consistency
+            videoCategoryId: '10'
         };
 
         const searchResponse = await youtube.search.list(searchParams);
